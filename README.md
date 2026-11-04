@@ -1,7 +1,5 @@
 # WHAT'S LEFT
-### Aplikasi Pengelolaan Makanan Surplus untuk Mengurangi Food Waste
-
----
+### Aplikasi Pengelolaan Makanan Surplus untuk Mengurangi Food Waste di Jatinangor
 
 ## 1. Deskripsi Aplikasi
 
@@ -17,14 +15,6 @@ Selain itu, aplikasi ini membantu bisnis dalam mencatat jumlah produksi dan penj
 - Memberikan kesempatan kepada konsumen untuk mendapatkan makanan dengan harga lebih terjangkau.
 - Membantu bisnis mencatat jumlah produksi, penjualan, dan makanan terbuang.
 - Mengoptimalkan pengelolaan stok makanan melalui pencatatan yang terstruktur.
-
-**Teknologi yang digunakan:**
-- Bahasa Pemrograman: Java
-- GUI Framework: Java Swing
-- Database: MySQL
-- Konsep Pemrograman: Object-Oriented Programming (OOP)
-
----
 
 ## 2. Pengguna dan Hak Akses
 
@@ -42,36 +32,25 @@ Aplikasi WHAT'S LEFT memiliki dua jenis pengguna, yaitu Business dan Customer.
 ### 3.1 Business
 
 Business memiliki beberapa fitur utama berikut:
+1. Mengelola data makanan, seperti nama makanan, kategori, deskripsi, dan harga normal.
+2. Mencatat jumlah makanan yang diproduksi, terjual secara reguler, dan terbuang.
+3. Menghitung jumlah makanan surplus berdasarkan data produksi.
+4. Membuat penawaran makanan surplus dengan menentukan jumlah makanan, persentase diskon, harga setelah diskon, dan waktu pengambilan.
+5. Melihat daftar reservasi yang dilakukan oleh Customer.
+6. Memperbarui status reservasi setelah pesanan diambil.
+7. Melihat ringkasan data produksi dan penjualan.
 
-| Modul | Fitur | Deskripsi |
-|---|---|---|
-| Food Management | Kelola Makanan | Menambahkan dan mengelola nama makanan, kategori, deskripsi, dan harga normal. |
-| Production | Catat Produksi | Mencatat jumlah makanan yang diproduksi. |
-| Production | Catat Penjualan | Mencatat jumlah makanan yang terjual secara reguler. |
-| Production | Catat Makanan Terbuang | Mencatat jumlah makanan yang tidak terjual dan terbuang. |
-| Production | Hitung Surplus | Menghitung jumlah makanan surplus berdasarkan data produksi. |
-| Surplus | Buat Penawaran | Membuat penawaran makanan surplus yang masih layak dikonsumsi. |
-| Surplus | Atur Diskon | Menentukan persentase diskon dan harga setelah diskon. |
-| Surplus | Atur Waktu Pengambilan | Menentukan waktu pengambilan makanan. |
-| Reservation | Kelola Reservasi | Melihat daftar reservasi yang dilakukan Customer. |
-| Reservation | Perbarui Status | Memperbarui status reservasi setelah pesanan diambil. |
-| Dashboard | Ringkasan Produksi | Melihat ringkasan data produksi dan penjualan. |
 
 ### 3.2 Customer
 
 Customer memiliki beberapa fitur utama berikut:
+1. Melihat daftar makanan surplus yang tersedia.
+2. Melihat informasi makanan, harga normal, harga diskon, jumlah tersedia, dan waktu pengambilan.
+3. Melakukan reservasi makanan sesuai jumlah yang diinginkan.
+4. Melihat daftar reservasi yang telah dilakukan.
+5. Melihat kode dan status reservasi.
+6. Membatalkan reservasi selama pesanan belum diselesaikan.
 
-| Modul | Fitur | Deskripsi |
-|---|---|---|
-| Food Catalog | Lihat Katalog | Melihat daftar makanan surplus yang tersedia. |
-| Food Catalog | Detail Makanan | Melihat informasi makanan, harga normal, harga diskon, jumlah tersedia, dan waktu pengambilan. |
-| Reservation | Buat Reservasi | Melakukan reservasi makanan sesuai jumlah yang diinginkan. |
-| Reservation | Kode Reservasi | Mendapatkan kode reservasi setelah melakukan pemesanan. |
-| Reservation | Riwayat Reservasi | Melihat daftar reservasi yang telah dilakukan. |
-| Reservation | Status Reservasi | Melihat kode dan status reservasi. |
-| Reservation | Batalkan Reservasi | Membatalkan reservasi selama pesanan belum diselesaikan. |
-
----
 
 ## 4. Alur Penggunaan Aplikasi
 
@@ -101,7 +80,6 @@ Customer memiliki beberapa fitur utama berikut:
 9. Customer mengambil makanan secara langsung sesuai waktu yang ditentukan.
 10. Business memperbarui status reservasi menjadi selesai setelah makanan diambil.
 
----
 
 ## 5. Perhitungan dalam Aplikasi
 
@@ -148,7 +126,6 @@ Sistem dapat memberikan perkiraan jumlah produksi berikutnya berdasarkan rata-ra
 
 Fitur ini bertujuan membantu Business memperkirakan kebutuhan produksi agar jumlah makanan yang terbuang dapat dikurangi.
 
----
 
 ## 6. Rancangan Frame Aplikasi
 
@@ -164,7 +141,6 @@ Aplikasi WHAT'S LEFT dirancang menggunakan lima JFrame utama yang saling terhubu
 
 Setiap frame dapat diakses melalui tombol navigasi pada halaman utama atau halaman sebelumnya. Fitur yang ditampilkan akan disesuaikan dengan bagian Business atau Customer yang dipilih pengguna.
 
----
 
 ## 7. Rancangan Database
 
@@ -189,9 +165,8 @@ Relasi antar tabel dalam database WHAT'S LEFT adalah sebagai berikut:
 3. **Production_Records dan Surplus_Listings** memiliki relasi One-to-One dalam rancangan awal karena satu catatan produksi menghasilkan maksimal satu penawaran surplus.
 4. **Surplus_Listings dan Reservations** memiliki relasi One-to-Many karena satu penawaran makanan dapat dipesan oleh beberapa Customer.
 
----
 
-## 8. Rancangan Class (OOP)
+## 8. Rancangan Class
 
 Rancangan class dibuat untuk menerapkan konsep Object-Oriented Programming (OOP) dalam pengembangan aplikasi.
 
@@ -307,24 +282,13 @@ Class frame bertugas menangani tampilan antarmuka pengguna (GUI) menggunakan Jav
 | 4 | SurplusFrame | Menampilkan dan mengelola penawaran makanan surplus. |
 | 5 | ReservationFrame | Menampilkan dan mengelola reservasi. |
 
----
 
 ## 9. Anggota Kelompok
 
-Proyek ini dikembangkan sebagai bagian dari praktikum Pemrograman Berorientasi Objek (PBO).
+Praktikum Pemrograman Berorientasi Objek (PBO).
 
 | No. | Nama Anggota | NPM |
 |---|---|---|
 | 1 | Mochammad Mufid Mukhlis | 140810250020 |
 | 2 | Azahwa Ezarmei Narita | 140810250044 |
 | 3 | Muhammad Razaqa Fasya Aditya | 140810250074 |
-
----
-
-## 10. Penutup
-
-WHAT'S LEFT diharapkan dapat menjadi solusi sederhana untuk membantu bisnis makanan dalam mengelola produk surplus dan mengurangi jumlah makanan yang terbuang.
-
-Melalui aplikasi ini, Business dapat mengoptimalkan pencatatan produksi dan penjualan, sedangkan Customer dapat memperoleh makanan berkualitas dengan harga yang lebih terjangkau.
-
-**WHAT'S LEFT — Give Surplus Food a Second Chance.**
