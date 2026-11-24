@@ -4,6 +4,21 @@
  */
 package whats_left.view;
 
+import java.util.ArrayList;
+import java.util.List;
+import whats_left.model.FoodItem;
+import whats_left.model.ProductionRecord;
+import whats_left.model.SurplusListing;
+import whats_left.repository.FoodRepository;
+import whats_left.repository.ProductionRepository;
+import whats_left.repository.SurplusRepository;
+import java.sql.SQLException;
+import javax.swing.JOptionPane;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.sql.Timestamp;
+import javax.swing.table.DefaultTableModel;
 /**
  *
  * @author LOQ
@@ -11,14 +26,289 @@ package whats_left.view;
 public class SurplusFrame extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(SurplusFrame.class.getName());
+    private ProductionRepository productionRepository = new ProductionRepository();
+    private FoodRepository foodRepository = new FoodRepository();
+    private SurplusRepository surplusRepository = new SurplusRepository();
+
+    private List<ProductionRecord> productionList = new ArrayList<>();
+    private int selectedSurplusId = -1;
 
     /**
      * Creates new form SurplusFlame
      */
     public SurplusFrame() {
         initComponents();
+        
+        setLocationRelativeTo(null);
+        selectedSurplusId = -1;
+        jTable2.clearSelection();
+        loadProductionComboBox();
+        loadSurplusTable();
+        
+        jTable2.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                int selectedRow = jTable2.getSelectedRow();
+
+                if (selectedRow != -1) {
+                    int id = Integer.parseInt(
+                            jTable2.getValueAt(selectedRow, 0).toString()
+                    );
+
+                    SurplusListing surplus = surplusRepository.getSurplusById(id);
+
+                    if (surplus != null) {
+                        selectedSurplusId = surplus.getId();
+
+                        jTextField1.setText(
+                                String.valueOf(surplus.getDiscountPercentage())
+                        );
+
+                        jTextField2.setText(
+                                String.valueOf(surplus.getInitialQuantity())
+                        );
+
+                        jTextField4.setText(
+                                String.valueOf(surplus.getDiscountedPrice())
+                        );
+
+                        jTextField5.setText(
+                                surplus.getPickupEnd().toLocalDateTime()
+                                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                        );
+
+                        try {
+                            ProductionRecord production
+                                    = productionRepository.getProductionById(
+                                            surplus.getProductionId()
+                                    );
+
+                            if (production != null) {
+                                FoodItem food
+                                        = foodRepository.getFoodById(production.getFoodId());
+
+                                if (food != null) {
+                                    jTextField3.setText(
+                                            String.valueOf(food.getRegularPrice())
+                                    );
+                                }
+                            }
+
+                        } catch (SQLException ex) {
+                            JOptionPane.showMessageDialog(this,
+                                    "Gagal mengambil data makanan: " + ex.getMessage());
+                        }
+                    }
+                }
+            }
+        });
+        
+        jTextField2.setEditable(false);
+        jTextField3.setEditable(false);
+        
+        jTextField1.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                calculateDiscountedPrice();
+            }
+        });
+
+        jButton1.addActionListener(e -> {
+            FoodFrame foodFrame = new FoodFrame("Business");
+            foodFrame.setVisible(true);
+            this.dispose();
+        });
+
+        jButton2.addActionListener(e -> {
+            ProductionFrame productionFrame = new ProductionFrame();
+            productionFrame.setVisible(true);
+            this.dispose();
+        });
+
+        jButton4.addActionListener(e -> {
+            MainFrame mainFrame = new MainFrame();
+            mainFrame.setVisible(true);
+            this.dispose();
+        });
+        
     }
 
+    private void loadProductionComboBox() {
+        jComboBox1.removeAllItems();
+        jComboBox1.addItem("Pilih Makanan");
+
+        productionList.clear();
+
+        try {
+            List<ProductionRecord> productions = productionRepository.getAllProductions();
+            List<SurplusListing> surpluses = surplusRepository.getAllSurpluses();
+
+            for (ProductionRecord production : productions) {
+                int surplus = production.calculateSurplus();
+                boolean alreadyListed = false;
+
+                for (SurplusListing listing : surpluses) {
+                    if (listing.getProductionId() == production.getId()) {
+                        alreadyListed = true;
+                        break;
+                    }
+                }
+
+                if (surplus > 0 && !alreadyListed) {
+                    FoodItem food = foodRepository.getFoodById(production.getFoodId());
+
+                    if (food != null) {
+                        productionList.add(production);
+
+                        jComboBox1.addItem(
+                                food.getFoodName() + " - Surplus: " + surplus
+                        );
+                    }
+                }
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Gagal mengambil data produksi: " + e.getMessage());
+        }
+    }
+    private void loadSurplusTable() {
+        DefaultTableModel model = new DefaultTableModel();
+
+        model.addColumn("ID");
+        model.addColumn("Nama Makanan");
+        model.addColumn("Jumlah");
+        model.addColumn("Diskon");
+        model.addColumn("Harga Diskon");
+        model.addColumn("Batas Ambil");
+        model.addColumn("Status");
+
+        List<SurplusListing> surpluses = surplusRepository.getAllSurpluses();
+
+        try {
+            for (SurplusListing surplus : surpluses) {
+                ProductionRecord production
+                        = productionRepository.getProductionById(surplus.getProductionId());
+
+                if (production != null) {
+                    FoodItem food = foodRepository.getFoodById(production.getFoodId());
+
+                    if (food != null) {
+                        String pickupEnd = surplus.getPickupEnd()
+                                .toLocalDateTime()
+                                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+
+                        model.addRow(new Object[]{
+                            surplus.getId(),
+                            food.getFoodName(),
+                            surplus.getInitialQuantity(),
+                            surplus.getDiscountPercentage() + "%",
+                            surplus.getDiscountedPrice(),
+                            pickupEnd,
+                            surplus.getStatus()
+                        });
+                    }
+                }
+            }
+
+            jTable2.setModel(model);
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Gagal menampilkan data surplus: " + e.getMessage());
+        }
+    }
+    
+    private void calculateDiscountedPrice() {
+        try {
+            double regularPrice = Double.parseDouble(jTextField3.getText());
+            double discount = Double.parseDouble(jTextField1.getText());
+
+            if (discount >= 0 && discount <= 100) {
+                double discountedPrice = regularPrice - (regularPrice * discount / 100);
+
+                jTextField4.setText(String.valueOf(discountedPrice));
+            } else {
+                jTextField4.setText("");
+            }
+
+        } catch (NumberFormatException e) {
+            jTextField4.setText("");
+        }
+    }
+    
+    private Timestamp getPickupEnd() {
+        try {
+            DateTimeFormatter formatter
+                    = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+            LocalDateTime pickupEnd = LocalDateTime.parse(
+                    jTextField5.getText().trim(), formatter
+            );
+
+            LocalDateTime now = LocalDateTime.now();
+
+            if (!pickupEnd.isAfter(now)) {
+                JOptionPane.showMessageDialog(this,
+                        "Batas pengambilan harus lebih dari waktu sekarang.");
+                return null;
+            }
+
+            return Timestamp.valueOf(pickupEnd);
+
+        } catch (DateTimeParseException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Format waktu salah!\nGunakan format: yyyy-MM-dd HH:mm");
+            return null;
+        }
+    }
+    
+    private boolean validateInput(boolean editMode) {
+        if (!editMode && jComboBox1.getSelectedIndex() <= 0) {
+            JOptionPane.showMessageDialog(this,
+                    "Silakan pilih makanan terlebih dahulu.");
+            return false;
+        }
+
+        if (editMode && selectedSurplusId == -1) {
+            JOptionPane.showMessageDialog(this,
+                    "Silakan pilih penawaran yang ingin diedit.");
+            return false;
+        }
+
+        if (jTextField1.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Diskon tidak boleh kosong.");
+            return false;
+        }
+
+        try {
+            double discount = Double.parseDouble(jTextField1.getText());
+
+            if (discount <= 0 || discount > 100) {
+                JOptionPane.showMessageDialog(this,
+                        "Diskon harus lebih dari 0 dan maksimal 100%.");
+                return false;
+            }
+
+            if (jTextField4.getText().trim().isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                        "Harga diskon belum dihitung.");
+                return false;
+            }
+
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Diskon harus berupa angka.");
+            return false;
+        }
+
+        if (getPickupEnd() == null) {
+            return false;
+        }
+
+        return true;
+    }
+    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -39,6 +329,7 @@ public class SurplusFrame extends javax.swing.JFrame {
         jButton2 = new javax.swing.JButton();
         jButton3 = new javax.swing.JButton();
         jButton4 = new javax.swing.JButton();
+        jButton9 = new javax.swing.JButton();
         jTextField1 = new javax.swing.JTextField();
         jButton5 = new javax.swing.JButton();
         jTextField2 = new javax.swing.JTextField();
@@ -52,6 +343,8 @@ public class SurplusFrame extends javax.swing.JFrame {
         jLabel4 = new javax.swing.JLabel();
         jTextField4 = new javax.swing.JTextField();
         jLabel10 = new javax.swing.JLabel();
+        jButton6 = new javax.swing.JButton();
+        jButton7 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -75,6 +368,7 @@ public class SurplusFrame extends javax.swing.JFrame {
         jComboBox1.addActionListener(this::jComboBox1ActionPerformed);
 
         jPanel1.setBackground(new java.awt.Color(0, 204, 51));
+        jPanel1.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
 
         jLabel2.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
         jLabel2.setText("Business");
@@ -91,6 +385,10 @@ public class SurplusFrame extends javax.swing.JFrame {
         jButton4.setFont(new java.awt.Font("Times New Roman", 0, 12)); // NOI18N
         jButton4.setText("Logout");
 
+        jButton9.setFont(new java.awt.Font("Times New Roman", 0, 12)); // NOI18N
+        jButton9.setText("Reservation");
+        jButton9.addActionListener(this::jButton9ActionPerformed);
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -106,7 +404,8 @@ public class SurplusFrame extends javax.swing.JFrame {
                             .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jButton9, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addGap(18, 18, 18))))
         );
         jPanel1Layout.setVerticalGroup(
@@ -120,6 +419,8 @@ public class SurplusFrame extends javax.swing.JFrame {
                 .addComponent(jButton2)
                 .addGap(18, 18, 18)
                 .addComponent(jButton3)
+                .addGap(18, 18, 18)
+                .addComponent(jButton9)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(jButton4)
                 .addGap(26, 26, 26))
@@ -154,6 +455,12 @@ public class SurplusFrame extends javax.swing.JFrame {
         jLabel10.setFont(new java.awt.Font("Times New Roman", 0, 12)); // NOI18N
         jLabel10.setText("Harga Diskon          :");
 
+        jButton6.setText("Hapus");
+        jButton6.addActionListener(this::jButton6ActionPerformed);
+
+        jButton7.setText("Edit");
+        jButton7.addActionListener(this::jButton7ActionPerformed);
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -170,6 +477,8 @@ public class SurplusFrame extends javax.swing.JFrame {
                             .addGroup(layout.createSequentialGroup()
                                 .addComponent(jButton5)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jButton6)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(jButton8, javax.swing.GroupLayout.PREFERRED_SIZE, 75, javax.swing.GroupLayout.PREFERRED_SIZE))
                             .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 559, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
@@ -201,6 +510,11 @@ public class SurplusFrame extends javax.swing.JFrame {
                                 .addGap(18, 18, 18)
                                 .addComponent(jTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, 87, javax.swing.GroupLayout.PREFERRED_SIZE)))
                         .addGap(54, 54, 54))))
+            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(layout.createSequentialGroup()
+                    .addGap(279, 279, 279)
+                    .addComponent(jButton7)
+                    .addContainerGap(405, Short.MAX_VALUE)))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -239,10 +553,17 @@ public class SurplusFrame extends javax.swing.JFrame {
                 .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 198, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jButton8)
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(jButton8)
+                        .addComponent(jButton6))
                     .addComponent(jButton5))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
             .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                    .addContainerGap(436, Short.MAX_VALUE)
+                    .addComponent(jButton7)
+                    .addContainerGap()))
         );
 
         pack();
@@ -250,15 +571,230 @@ public class SurplusFrame extends javax.swing.JFrame {
 
     private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
         // TODO add your handling code here:
+        if (!validateInput(false)) {
+            return;
+        }
+
+        try {
+            int selectedIndex = jComboBox1.getSelectedIndex();
+
+            ProductionRecord production = productionList.get(selectedIndex - 1);
+
+            int productionId = production.getId();
+            int surplus = production.calculateSurplus();
+
+            double discount = Double.parseDouble(jTextField1.getText());
+            double discountedPrice = Double.parseDouble(jTextField4.getText());
+
+            Timestamp pickupStart = Timestamp.valueOf(LocalDateTime.now());
+            Timestamp pickupEnd = getPickupEnd();
+
+            if (pickupEnd == null) {
+                return;
+            }
+
+            SurplusListing surplusListing = new SurplusListing(
+                    0,
+                    productionId,
+                    discount,
+                    discountedPrice,
+                    surplus,
+                    surplus,
+                    pickupStart,
+                    pickupEnd,
+                    "Available",
+                    null
+            );
+
+            boolean result = surplusRepository.addSurplus(surplusListing);
+
+            if (result) {
+                JOptionPane.showMessageDialog(this,
+                        "Penawaran surplus berhasil disimpan!");
+
+                jComboBox1.setSelectedIndex(0);
+                jTextField1.setText("");
+                jTextField2.setText("");
+                jTextField3.setText("");
+                jTextField4.setText("");
+                jTextField5.setText("");
+
+                selectedSurplusId = -1;
+                jTable2.clearSelection();
+                
+                loadProductionComboBox();
+                loadSurplusTable();
+
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Gagal menyimpan penawaran surplus.");
+            }
+
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Pastikan input angka sudah benar.");
+        }
     }//GEN-LAST:event_jButton5ActionPerformed
 
     private void jButton8ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton8ActionPerformed
         // TODO add your handling code here:
+        selectedSurplusId = -1;
+
+        jTable2.clearSelection();
+        jComboBox1.setSelectedIndex(0);
+
+        jTextField1.setText("");
+        jTextField2.setText("");
+        jTextField3.setText("");
+        jTextField4.setText("");
+        jTextField5.setText("");
     }//GEN-LAST:event_jButton8ActionPerformed
 
     private void jComboBox1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBox1ActionPerformed
         // TODO add your handling code here:
+        int selectedIndex = jComboBox1.getSelectedIndex();
+
+        if (selectedIndex > 0) {
+            ProductionRecord production = productionList.get(selectedIndex - 1);
+
+            FoodItem food = foodRepository.getFoodById(production.getFoodId());
+
+            if (food != null) {
+                jTextField2.setText(String.valueOf(production.calculateSurplus()));
+                jTextField3.setText(String.valueOf(food.getRegularPrice()));
+            }
+
+        } else {
+            jTextField2.setText("");
+            jTextField3.setText("");
+            jTextField4.setText("");
+        }
     }//GEN-LAST:event_jComboBox1ActionPerformed
+
+    private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
+        // TODO add your handling code here:
+        int selectedRow = jTable2.getSelectedRow();
+
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this,
+                    "Silakan pilih penawaran yang ingin dihapus.");
+            return;
+        }
+
+        int id = Integer.parseInt(
+                jTable2.getValueAt(selectedRow, 0).toString()
+        );
+
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Apakah kamu yakin ingin menghapus penawaran ini?",
+                "Konfirmasi Hapus",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            boolean result = surplusRepository.deleteSurplus(id);
+
+            if (result) {
+                JOptionPane.showMessageDialog(this,
+                        "Penawaran surplus berhasil dihapus!");
+
+                selectedSurplusId = -1;
+
+                jTable2.clearSelection();
+                jComboBox1.setSelectedIndex(0);
+
+                jTextField1.setText("");
+                jTextField2.setText("");
+                jTextField3.setText("");
+                jTextField4.setText("");
+                jTextField5.setText("");
+
+                loadSurplusTable();
+                loadProductionComboBox();
+
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Gagal menghapus penawaran surplus. "
+                        + "Pastikan tidak ada reservasi yang terkait.");
+            }
+        }
+    }//GEN-LAST:event_jButton6ActionPerformed
+
+    private void jButton7ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton7ActionPerformed
+        // TODO add your handling code here:
+        if (!validateInput(true)) {
+            return;
+        }
+
+        try {
+            SurplusListing oldSurplus
+                    = surplusRepository.getSurplusById(selectedSurplusId);
+
+            if (oldSurplus == null) {
+                JOptionPane.showMessageDialog(this,
+                        "Data surplus tidak ditemukan.");
+                return;
+            }
+
+            double discount = Double.parseDouble(jTextField1.getText());
+            double discountedPrice = Double.parseDouble(jTextField4.getText());
+            Timestamp pickupEnd = getPickupEnd();
+
+            if (pickupEnd == null) {
+                return;
+            }
+
+            SurplusListing updatedSurplus = new SurplusListing(
+                    oldSurplus.getId(),
+                    oldSurplus.getProductionId(),
+                    discount,
+                    discountedPrice,
+                    oldSurplus.getInitialQuantity(),
+                    oldSurplus.getAvailableQuantity(),
+                    oldSurplus.getPickupStart(),
+                    pickupEnd,
+                    oldSurplus.getStatus(),
+                    oldSurplus.getCreatedAt()
+            );
+
+            boolean result = surplusRepository.updateSurplus(updatedSurplus);
+
+            if (result) {
+                JOptionPane.showMessageDialog(this,
+                        "Penawaran surplus berhasil diperbarui!");
+
+                selectedSurplusId = -1;
+
+                jTable2.clearSelection();
+                jComboBox1.setSelectedIndex(0);
+
+                jTextField1.setText("");
+                jTextField2.setText("");
+                jTextField3.setText("");
+                jTextField4.setText("");
+                jTextField5.setText("");
+
+                loadSurplusTable();
+                loadProductionComboBox();
+
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Gagal memperbarui penawaran surplus.");
+            }
+
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Pastikan input angka sudah benar.");
+        }
+    }//GEN-LAST:event_jButton7ActionPerformed
+
+    private void jButton9ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton9ActionPerformed
+        // TODO add your handling code here:
+        ReservationFrame reservationFrame = new ReservationFrame("Business");
+        reservationFrame.setVisible(true);
+        this.dispose();
+    }//GEN-LAST:event_jButton9ActionPerformed
 
     /**
      * @param args the command line arguments
@@ -291,7 +827,10 @@ public class SurplusFrame extends javax.swing.JFrame {
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
     private javax.swing.JButton jButton5;
+    private javax.swing.JButton jButton6;
+    private javax.swing.JButton jButton7;
     private javax.swing.JButton jButton8;
+    private javax.swing.JButton jButton9;
     private javax.swing.JComboBox<String> jComboBox1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;

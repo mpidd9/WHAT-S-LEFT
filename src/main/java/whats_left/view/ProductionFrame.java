@@ -4,6 +4,19 @@
  */
 package whats_left.view;
 
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.util.List;
+import javax.swing.JOptionPane;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.table.DefaultTableModel;
+import whats_left.model.FoodItem;
+import whats_left.model.ProductionRecord;
+import whats_left.repository.FoodRepository;
+import whats_left.repository.ProductionRepository;
+import java.sql.SQLException;
+
 /**
  *
  * @author LOQ
@@ -11,14 +24,259 @@ package whats_left.view;
 public class ProductionFrame extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(ProductionFrame.class.getName());
+    private FoodRepository foodRepository = new FoodRepository();
+    private ProductionRepository productionRepository = new ProductionRepository();
+    private List<FoodItem> foodList;
 
     /**
      * Creates new form ProductionFrame
      */
     public ProductionFrame() {
         initComponents();
+        
+        setLocationRelativeTo(null);
+        setupTable();
+        loadFoodList();
+        loadProductionTable();
+        setupSurplusCalculation();
+        
+        jButton1.addActionListener(e -> {
+            FoodFrame foodFrame = new FoodFrame("Business");
+            foodFrame.setVisible(true);
+            this.dispose();
+        });
+
+        jButton2.addActionListener(e -> {
+            ProductionFrame productionFrame = new ProductionFrame();
+            productionFrame.setVisible(true);
+            this.dispose();
+        });
+
+        jButton3.addActionListener(e -> {
+            SurplusFrame surplusFrame = new SurplusFrame();
+            surplusFrame.setVisible(true);
+            this.dispose();
+        });
+
+        jButton4.addActionListener(e -> {
+            MainFrame mainFrame = new MainFrame();
+            mainFrame.setVisible(true);
+            this.dispose();
+        });
+        
+        jButton9.addActionListener(e -> {
+            ReservationFrame reservationFrame = new ReservationFrame("Business");
+            reservationFrame.setVisible(true);
+            this.dispose();
+        });
+
+        jTextField5.setEditable(false);
+
+        jTable2.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                int selectedRow = jTable2.getSelectedRow();
+
+                if (selectedRow != -1) {
+                    try {
+                        int id = Integer.parseInt(
+                                jTable2.getValueAt(selectedRow, 0).toString()
+                        );
+
+                        ProductionRecord production
+                                = productionRepository.getProductionById(id);
+
+                        if (production != null) {
+                            for (int i = 0; i < foodList.size(); i++) {
+                                if (foodList.get(i).getId() == production.getFoodId()) {
+                                    jComboBox1.setSelectedIndex(i + 1);
+                                    break;
+                                }
+                            }
+
+                            jTextField2.setText(
+                                    production.getProductionDate().toLocalDateTime()
+                                            .toLocalDate().toString()
+                            );
+                            jTextField1.setText(String.valueOf(production.getTotalProduced()));
+                            jTextField3.setText(String.valueOf(production.getRegularSold()));
+                            jTextField4.setText(String.valueOf(production.getWasted()));
+                            jTextField5.setText(String.valueOf(production.calculateSurplus()));
+                        }
+
+                    } catch (SQLException ex) {
+                        JOptionPane.showMessageDialog(this,
+                                "Gagal mengambil data produksi: " + ex.getMessage());
+                    }
+                }
+            }
+        });
+    }
+    
+    private void setupTable() {
+        DefaultTableModel model = new DefaultTableModel(
+                new Object[][]{},
+                new String[]{
+                    "ID", "Tanggal", "Nama Makanan",
+                    "Produksi", "Terjual", "Terbuang", "Surplus"
+                }
+        ) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        jTable2.setModel(model);
+    }
+    
+    private void loadFoodList() {
+        foodList = foodRepository.getAllFoods();
+
+        jComboBox1.removeAllItems();
+        jComboBox1.addItem("Pilih Makanan");
+
+        for (FoodItem food : foodList) {
+            jComboBox1.addItem(food.getFoodName());
+        }
+    }
+    
+    
+    private void loadProductionTable() {
+        DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
+        model.setRowCount(0);
+
+        try {
+            List<ProductionRecord> productions = productionRepository.getAllProductions();
+
+            for (ProductionRecord production : productions) {
+                FoodItem food = foodRepository.getFoodById(production.getFoodId());
+
+                String foodName = "-";
+
+                if (food != null) {
+                    foodName = food.getFoodName();
+                }
+
+                model.addRow(new Object[]{
+                    production.getId(),
+                    production.getProductionDate().toLocalDateTime().toLocalDate().toString(),
+                    foodName,
+                    production.getTotalProduced(),
+                    production.getRegularSold(),
+                    production.getWasted(),
+                    production.calculateSurplus()
+                });
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Gagal memuat data produksi: " + e.getMessage());
+        }
     }
 
+
+    private void setupSurplusCalculation() {
+        DocumentListener listener = new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                calculateSurplus();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                calculateSurplus();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                calculateSurplus();
+            }
+        };
+
+        jTextField1.getDocument().addDocumentListener(listener);
+        jTextField3.getDocument().addDocumentListener(listener);
+        jTextField4.getDocument().addDocumentListener(listener);
+    }
+    
+    private void calculateSurplus() {
+        try {
+            String totalText = jTextField1.getText().trim();
+            String soldText = jTextField3.getText().trim();
+            String wastedText = jTextField4.getText().trim();
+
+            if (totalText.isEmpty() || soldText.isEmpty() || wastedText.isEmpty()) {
+                jTextField5.setText("");
+                return;
+            }
+
+            int total = Integer.parseInt(totalText);
+            int sold = Integer.parseInt(soldText);
+            int wasted = Integer.parseInt(wastedText);
+
+            int surplus = total - sold - wasted;
+
+            if (surplus >= 0) {
+                jTextField5.setText(String.valueOf(surplus));
+            } else {
+                jTextField5.setText("Tidak valid");
+            }
+
+        } catch (NumberFormatException e) {
+            jTextField5.setText("");
+        }
+    }
+    
+    private boolean validateInput() {
+
+        if (jComboBox1.getSelectedIndex() <= 0) {
+            JOptionPane.showMessageDialog(this,
+                    "Pilih makanan terlebih dahulu.");
+            return false;
+        }
+
+        if (jTextField2.getText().trim().isEmpty()
+                || jTextField1.getText().trim().isEmpty()
+                || jTextField3.getText().trim().isEmpty()
+                || jTextField4.getText().trim().isEmpty()) {
+
+            JOptionPane.showMessageDialog(this,
+                    "Semua field harus diisi.");
+            return false;
+        }
+
+        try {
+            LocalDate.parse(jTextField2.getText().trim());
+
+            int total = Integer.parseInt(jTextField1.getText().trim());
+            int sold = Integer.parseInt(jTextField3.getText().trim());
+            int wasted = Integer.parseInt(jTextField4.getText().trim());
+
+            if (total < 0 || sold < 0 || wasted < 0) {
+                JOptionPane.showMessageDialog(this,
+                        "Jumlah tidak boleh negatif.");
+                return false;
+            }
+
+            if (sold + wasted > total) {
+                JOptionPane.showMessageDialog(this,
+                        "Jumlah terjual dan terbuang tidak boleh melebihi total produksi.");
+                return false;
+            }
+
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Jumlah produksi harus berupa angka bulat.");
+            return false;
+
+        } catch (java.time.format.DateTimeParseException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Format tanggal harus yyyy-MM-dd.");
+            return false;
+        }
+
+        return true;
+    }
+    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -42,6 +300,7 @@ public class ProductionFrame extends javax.swing.JFrame {
         jButton2 = new javax.swing.JButton();
         jButton3 = new javax.swing.JButton();
         jButton4 = new javax.swing.JButton();
+        jButton9 = new javax.swing.JButton();
         jLabel6 = new javax.swing.JLabel();
         jComboBox1 = new javax.swing.JComboBox<>();
         jTextField1 = new javax.swing.JTextField();
@@ -52,10 +311,12 @@ public class ProductionFrame extends javax.swing.JFrame {
         jTextField3 = new javax.swing.JTextField();
         jTextField4 = new javax.swing.JTextField();
         jTextField5 = new javax.swing.JTextField();
+        jButton6 = new javax.swing.JButton();
+        jButton7 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
-        jButton5.setText("Simpan");
+        jButton5.setText("Hapus");
         jButton5.addActionListener(this::jButton5ActionPerformed);
 
         jLabel1.setFont(new java.awt.Font("Tw Cen MT", 1, 24)); // NOI18N
@@ -87,6 +348,7 @@ public class ProductionFrame extends javax.swing.JFrame {
         jScrollPane2.setViewportView(jTable2);
 
         jPanel1.setBackground(new java.awt.Color(0, 204, 51));
+        jPanel1.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
 
         jLabel2.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
         jLabel2.setText("Business");
@@ -103,6 +365,9 @@ public class ProductionFrame extends javax.swing.JFrame {
         jButton4.setFont(new java.awt.Font("Times New Roman", 0, 12)); // NOI18N
         jButton4.setText("Logout");
 
+        jButton9.setFont(new java.awt.Font("Times New Roman", 0, 12)); // NOI18N
+        jButton9.setText("Reservation");
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -118,7 +383,8 @@ public class ProductionFrame extends javax.swing.JFrame {
                             .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jButton9, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addGap(18, 18, 18))))
         );
         jPanel1Layout.setVerticalGroup(
@@ -132,6 +398,8 @@ public class ProductionFrame extends javax.swing.JFrame {
                 .addComponent(jButton2)
                 .addGap(18, 18, 18)
                 .addComponent(jButton3)
+                .addGap(18, 18, 18)
+                .addComponent(jButton9)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(jButton4)
                 .addGap(26, 26, 26))
@@ -143,15 +411,22 @@ public class ProductionFrame extends javax.swing.JFrame {
         jComboBox1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Pilih Makanan", " " }));
 
         jLabel7.setFont(new java.awt.Font("Times New Roman", 0, 12)); // NOI18N
-        jLabel7.setText("Sisa Makanan       :");
+        jLabel7.setText("Terbuang               :");
 
         jLabel8.setFont(new java.awt.Font("Times New Roman", 0, 12)); // NOI18N
         jLabel8.setText("Terjual                  :");
 
         jLabel9.setFont(new java.awt.Font("Times New Roman", 0, 12)); // NOI18N
-        jLabel9.setText("Surplus                  :");
+        jLabel9.setText("Surplus                 :");
 
+        jTextField5.setEnabled(false);
         jTextField5.addActionListener(this::jTextField5ActionPerformed);
+
+        jButton6.setText("Simpan");
+        jButton6.addActionListener(this::jButton6ActionPerformed);
+
+        jButton7.setText("Edit");
+        jButton7.addActionListener(this::jButton7ActionPerformed);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -171,8 +446,11 @@ public class ProductionFrame extends javax.swing.JFrame {
                                     .addComponent(jLabel6))
                                 .addGap(0, 0, Short.MAX_VALUE))
                             .addGroup(layout.createSequentialGroup()
-                                .addComponent(jButton5)
+                                .addGap(90, 90, 90)
+                                .addComponent(jButton7)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jButton5)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(jButton8, javax.swing.GroupLayout.PREFERRED_SIZE, 75, javax.swing.GroupLayout.PREFERRED_SIZE)))
                         .addContainerGap())
                     .addGroup(layout.createSequentialGroup()
@@ -185,21 +463,27 @@ public class ProductionFrame extends javax.swing.JFrame {
                             .addComponent(jComboBox1, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addComponent(jTextField1)
                             .addComponent(jTextField2))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 167, Short.MAX_VALUE)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 163, Short.MAX_VALUE)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(layout.createSequentialGroup()
-                                .addComponent(jLabel7)
-                                .addGap(18, 18, 18)
-                                .addComponent(jTextField4))
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(jLabel9)
-                                .addGap(18, 18, 18)
-                                .addComponent(jTextField5))
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                    .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                    .addComponent(jLabel9, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                .addGap(16, 16, 16)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                    .addComponent(jTextField4, javax.swing.GroupLayout.DEFAULT_SIZE, 98, Short.MAX_VALUE)
+                                    .addComponent(jTextField5))
+                                .addGap(0, 0, Short.MAX_VALUE))
                             .addGroup(layout.createSequentialGroup()
                                 .addComponent(jLabel8)
                                 .addGap(18, 18, 18)
-                                .addComponent(jTextField3, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addGap(51, 51, 51))))
+                                .addComponent(jTextField3, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(51, 51, 51))))))
+            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(layout.createSequentialGroup()
+                    .addGap(201, 201, 201)
+                    .addComponent(jButton6)
+                    .addContainerGap(551, Short.MAX_VALUE)))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -231,9 +515,15 @@ public class ProductionFrame extends javax.swing.JFrame {
                 .addGap(18, 18, 18)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jButton5)
-                    .addComponent(jButton8))
+                    .addComponent(jButton8)
+                    .addComponent(jButton7))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
             .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                    .addContainerGap(435, Short.MAX_VALUE)
+                    .addComponent(jButton6)
+                    .addContainerGap()))
         );
 
         pack();
@@ -241,15 +531,177 @@ public class ProductionFrame extends javax.swing.JFrame {
 
     private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
         // TODO add your handling code here:
+        int selectedRow = jTable2.getSelectedRow();
+
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this,
+                    "Pilih data produksi yang ingin dihapus!");
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Apakah kamu yakin ingin menghapus data produksi ini?",
+                "Konfirmasi Hapus",
+                JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            int id = Integer.parseInt(
+                    jTable2.getValueAt(selectedRow, 0).toString()
+            );
+
+            try {
+                boolean result = productionRepository.deleteProduction(id);
+
+                if (result) {
+                    JOptionPane.showMessageDialog(this,
+                            "Data produksi berhasil dihapus!");
+
+                    loadProductionTable();
+
+                    jComboBox1.setSelectedIndex(0);
+                    jTextField1.setText("");
+                    jTextField2.setText("");
+                    jTextField3.setText("");
+                    jTextField4.setText("");
+                    jTextField5.setText("");
+
+                    jTable2.clearSelection();
+
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                            "Gagal menghapus data produksi!");
+                }
+
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this,
+                        "Terjadi kesalahan database: " + e.getMessage());
+            }
+        }
     }//GEN-LAST:event_jButton5ActionPerformed
 
     private void jButton8ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton8ActionPerformed
         // TODO add your handling code here:
+        jComboBox1.setSelectedIndex(0);
+        jTextField1.setText("");
+        jTextField2.setText("");
+        jTextField3.setText("");
+        jTextField4.setText("");
+        jTextField5.setText("");
+
+        jTable2.clearSelection();
     }//GEN-LAST:event_jButton8ActionPerformed
 
     private void jTextField5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField5ActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_jTextField5ActionPerformed
+
+    private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
+        // TODO add your handling code here:
+        if (validateInput()) {
+            int selectedIndex = jComboBox1.getSelectedIndex();
+            FoodItem selectedFood = foodList.get(selectedIndex - 1);
+
+            ProductionRecord production = new ProductionRecord();
+
+            production.setFoodId(selectedFood.getId());
+            production.setProductionDate(
+                    Timestamp.valueOf(
+                            LocalDate.parse(jTextField2.getText().trim()).atStartOfDay()
+                    )
+            );
+            production.setTotalProduced(Integer.parseInt(jTextField1.getText().trim()));
+            production.setRegularSold(Integer.parseInt(jTextField3.getText().trim()));
+            production.setWasted(Integer.parseInt(jTextField4.getText().trim()));
+
+            try {
+                boolean result = productionRepository.addProduction(production);
+
+                if (result) {
+                    JOptionPane.showMessageDialog(this,
+                            "Data produksi berhasil disimpan!");
+
+                    loadProductionTable();
+
+                    jComboBox1.setSelectedIndex(0);
+                    jTextField1.setText("");
+                    jTextField2.setText("");
+                    jTextField3.setText("");
+                    jTextField4.setText("");
+                    jTextField5.setText("");
+
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                            "Gagal menyimpan data produksi!");
+                }
+
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this,
+                        "Terjadi kesalahan database: " + e.getMessage());
+            }
+        }
+    }//GEN-LAST:event_jButton6ActionPerformed
+
+    private void jButton7ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton7ActionPerformed
+        // TODO add your handling code here:
+        int selectedRow = jTable2.getSelectedRow();
+
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this,
+                    "Pilih data produksi yang ingin diedit!");
+            return;
+        }
+
+        if (!validateInput()) {
+            return;
+        }
+
+        int id = Integer.parseInt(
+                jTable2.getValueAt(selectedRow, 0).toString()
+        );
+
+        int selectedIndex = jComboBox1.getSelectedIndex();
+        FoodItem selectedFood = foodList.get(selectedIndex - 1);
+
+        ProductionRecord production = new ProductionRecord();
+
+        production.setId(id);
+        production.setFoodId(selectedFood.getId());
+        production.setProductionDate(
+                Timestamp.valueOf(
+                        LocalDate.parse(jTextField2.getText().trim()).atStartOfDay()
+                )
+        );
+        production.setTotalProduced(Integer.parseInt(jTextField1.getText().trim()));
+        production.setRegularSold(Integer.parseInt(jTextField3.getText().trim()));
+        production.setWasted(Integer.parseInt(jTextField4.getText().trim()));
+
+        try {
+            boolean result = productionRepository.updateProduction(production);
+
+            if (result) {
+                JOptionPane.showMessageDialog(this,
+                        "Data produksi berhasil diperbarui!");
+
+                loadProductionTable();
+                jTable2.clearSelection();
+
+                jComboBox1.setSelectedIndex(0);
+                jTextField1.setText("");
+                jTextField2.setText("");
+                jTextField3.setText("");
+                jTextField4.setText("");
+                jTextField5.setText("");
+
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Gagal memperbarui data produksi!");
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Terjadi kesalahan database: " + e.getMessage());
+        }
+    }//GEN-LAST:event_jButton7ActionPerformed
 
     /**
      * @param args the command line arguments
@@ -282,7 +734,10 @@ public class ProductionFrame extends javax.swing.JFrame {
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
     private javax.swing.JButton jButton5;
+    private javax.swing.JButton jButton6;
+    private javax.swing.JButton jButton7;
     private javax.swing.JButton jButton8;
+    private javax.swing.JButton jButton9;
     private javax.swing.JComboBox<String> jComboBox1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;

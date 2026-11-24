@@ -17,12 +17,17 @@ import whats_left.model.ProductionRecord;
  * @author LOQ
  */
 public class ProductionRepository {
-    public boolean addProduction(ProductionRecord production) {
-        String sql = "INSERT INTO production_records (food_id, production_date, total_produced, regular_sold, wasted) VALUES (?, ?, ?, ?, ?)";
+    public boolean addProduction(ProductionRecord production) throws SQLException {
+        String sql = "INSERT INTO production_records "
+                + "(food_id, production_date, total_produced, regular_sold, wasted) "
+                + "VALUES (?, ?, ?, ?, ?)";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
 
         try {
-            Connection connection = DatabaseUtil.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql);
+            connection = DatabaseUtil.getConnection();
+            statement = connection.prepareStatement(sql);
 
             statement.setInt(1, production.getFoodId());
             statement.setTimestamp(2, production.getProductionDate());
@@ -30,93 +35,153 @@ public class ProductionRepository {
             statement.setInt(4, production.getRegularSold());
             statement.setInt(5, production.getWasted());
 
-            statement.executeUpdate();
+            int result = statement.executeUpdate();
 
-            statement.close();
-            connection.close();
+            return result > 0;
 
-            return true;
-        } catch (SQLException e) {
-            System.out.println("Gagal menambahkan data produksi: " + e.getMessage());
-            return false;
+        } finally {
+            try {
+                if (statement != null) {
+                    statement.close();
+                }
+            } catch (SQLException e) {
+                System.out.println("Gagal menutup statement: " + e.getMessage());
+            }
+
+            try {
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                System.out.println("Gagal menutup connection: " + e.getMessage());
+            }
         }
     }
 
-    public List<ProductionRecord> getAllProductions() {
+    public List<ProductionRecord> getAllProductions() throws SQLException {
         List<ProductionRecord> productions = new ArrayList<>();
         String sql = "SELECT * FROM production_records";
 
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet result = null;
+
         try {
-            Connection connection = DatabaseUtil.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql);
-            ResultSet result = statement.executeQuery();
+            connection = DatabaseUtil.getConnection();
+            statement = connection.prepareStatement(sql);
+            result = statement.executeQuery();
 
             while (result.next()) {
                 ProductionRecord production = new ProductionRecord(
-                    result.getInt("id"),
-                    result.getInt("food_id"),
-                    result.getTimestamp("production_date"),
-                    result.getInt("total_produced"),
-                    result.getInt("regular_sold"),
-                    result.getInt("wasted"),
-                    result.getTimestamp("created_at")
+                        result.getInt("id"),
+                        result.getInt("food_id"),
+                        result.getTimestamp("production_date"),
+                        result.getInt("total_produced"),
+                        result.getInt("regular_sold"),
+                        result.getInt("wasted"),
+                        result.getTimestamp("created_at")
                 );
 
                 productions.add(production);
             }
 
-            result.close();
-            statement.close();
-            connection.close();
+        } finally {
+            try {
+                if (result != null) {
+                    result.close();
+                }
+            } catch (SQLException e) {
+                System.out.println("Gagal menutup result set: " + e.getMessage());
+            }
 
-        } catch (SQLException e) {
-            System.out.println("Gagal mengambil data produksi: " + e.getMessage());
+            try {
+                if (statement != null) {
+                    statement.close();
+                }
+            } catch (SQLException e) {
+                System.out.println("Gagal menutup statement: " + e.getMessage());
+            }
+
+            try {
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                System.out.println("Gagal menutup connection: " + e.getMessage());
+            }
         }
 
         return productions;
     }
 
-    public ProductionRecord getProductionById(int id) {
+    public ProductionRecord getProductionById(int id) throws SQLException {
         ProductionRecord production = null;
         String sql = "SELECT * FROM production_records WHERE id = ?";
 
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet result = null;
+
         try {
-            Connection connection = DatabaseUtil.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql);
+            connection = DatabaseUtil.getConnection();
+            statement = connection.prepareStatement(sql);
 
             statement.setInt(1, id);
 
-            ResultSet result = statement.executeQuery();
+            result = statement.executeQuery();
 
             if (result.next()) {
                 production = new ProductionRecord(
-                    result.getInt("id"),
-                    result.getInt("food_id"),
-                    result.getTimestamp("production_date"),
-                    result.getInt("total_produced"),
-                    result.getInt("regular_sold"),
-                    result.getInt("wasted"),
-                    result.getTimestamp("created_at")
+                        result.getInt("id"),
+                        result.getInt("food_id"),
+                        result.getTimestamp("production_date"),
+                        result.getInt("total_produced"),
+                        result.getInt("regular_sold"),
+                        result.getInt("wasted"),
+                        result.getTimestamp("created_at")
                 );
             }
 
-            result.close();
-            statement.close();
-            connection.close();
+        } finally {
+            try {
+                if (result != null) {
+                    result.close();
+                }
+            } catch (SQLException e) {
+                System.out.println("Gagal menutup result set: " + e.getMessage());
+            }
 
-        } catch (SQLException e) {
-            System.out.println("Gagal mencari data produksi: " + e.getMessage());
+            try {
+                if (statement != null) {
+                    statement.close();
+                }
+            } catch (SQLException e) {
+                System.out.println("Gagal menutup statement: " + e.getMessage());
+            }
+
+            try {
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                System.out.println("Gagal menutup connection: " + e.getMessage());
+            }
         }
 
         return production;
     }
 
-    public boolean updateProduction(ProductionRecord production) {
-        String sql = "UPDATE production_records SET food_id = ?, production_date = ?, total_produced = ?, regular_sold = ?, wasted = ? WHERE id = ?";
+    public boolean updateProduction(ProductionRecord production) throws SQLException {
+        String sql = "UPDATE production_records SET "
+                + "food_id = ?, production_date = ?, total_produced = ?, "
+                + "regular_sold = ?, wasted = ? WHERE id = ?";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
 
         try {
-            Connection connection = DatabaseUtil.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql);
+            connection = DatabaseUtil.getConnection();
+            statement = connection.prepareStatement(sql);
 
             statement.setInt(1, production.getFoodId());
             statement.setTimestamp(2, production.getProductionDate());
@@ -125,35 +190,61 @@ public class ProductionRepository {
             statement.setInt(5, production.getWasted());
             statement.setInt(6, production.getId());
 
-            statement.executeUpdate();
+            int result = statement.executeUpdate();
 
-            statement.close();
-            connection.close();
+            return result > 0;
 
-            return true;
-        } catch (SQLException e) {
-            System.out.println("Gagal mengubah data produksi: " + e.getMessage());
-            return false;
+        } finally {
+            try {
+                if (statement != null) {
+                    statement.close();
+                }
+            } catch (SQLException e) {
+                System.out.println("Gagal menutup statement: " + e.getMessage());
+            }
+
+            try {
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                System.out.println("Gagal menutup connection: " + e.getMessage());
+            }
         }
     }
 
-    public boolean deleteProduction(int id) {
+    public boolean deleteProduction(int id) throws SQLException {
         String sql = "DELETE FROM production_records WHERE id = ?";
 
+        Connection connection = null;
+        PreparedStatement statement = null;
+
         try {
-            Connection connection = DatabaseUtil.getConnection();
-            PreparedStatement statement = connection.prepareStatement(sql);
+            connection = DatabaseUtil.getConnection();
+            statement = connection.prepareStatement(sql);
 
             statement.setInt(1, id);
-            statement.executeUpdate();
 
-            statement.close();
-            connection.close();
+            int result = statement.executeUpdate();
 
-            return true;
-        } catch (SQLException e) {
-            System.out.println("Gagal menghapus data produksi: " + e.getMessage());
-            return false;
+            return result > 0;
+
+        } finally {
+            try {
+                if (statement != null) {
+                    statement.close();
+                }
+            } catch (SQLException e) {
+                System.out.println("Gagal menutup statement: " + e.getMessage());
+            }
+
+            try {
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                System.out.println("Gagal menutup connection: " + e.getMessage());
+            }
         }
     }
 }

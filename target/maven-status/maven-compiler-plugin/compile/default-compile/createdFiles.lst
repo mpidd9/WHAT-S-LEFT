@@ -1,5 +1,7 @@
 whats_left\repository\DatabaseUtil.class
 whats_left\repository\ProductionRepository.class
+whats_left\view\ProductionFrame$1.class
+whats_left\view\SurplusFrame$1.class
 whats_left\repository\SurplusRepository.class
 whats_left\view\MainFrame.class
 whats_left\view\ReservationFrame.class
@@ -9,6 +11,7 @@ whats_left\repository\ReservationRepository.class
 com\mycompany\whats_left2\Whats_Left2.class
 whats_left\model\Business.class
 whats_left\model\SurplusListing.class
+whats_left\view\ProductionFrame$2.class
 whats_left\view\ProductionFrame.class
 whats_left\model\ProductionRecord.class
 whats_left\view\SurplusFrame.class

@@ -168,4 +168,45 @@ public class SurplusRepository {
             return false;
         }
     }
+    
+    public List<SurplusListing> getAvailableSurpluses() {
+        List<SurplusListing> surpluses = new ArrayList<>();
+
+        String sql = "SELECT * FROM surplus_listings "
+                + "WHERE status = 'Available' "
+                + "AND available_quantity > 0 "
+                + "AND pickup_end > NOW()";
+
+        try {
+            Connection connection = DatabaseUtil.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql);
+            ResultSet result = statement.executeQuery();
+
+            while (result.next()) {
+                SurplusListing surplus = new SurplusListing(
+                        result.getInt("id"),
+                        result.getInt("production_id"),
+                        result.getDouble("discount_percentage"),
+                        result.getDouble("discounted_price"),
+                        result.getInt("initial_quantity"),
+                        result.getInt("available_quantity"),
+                        result.getTimestamp("pickup_start"),
+                        result.getTimestamp("pickup_end"),
+                        result.getString("status"),
+                        result.getTimestamp("created_at")
+                );
+
+                surpluses.add(surplus);
+            }
+
+            result.close();
+            statement.close();
+            connection.close();
+
+        } catch (SQLException e) {
+            System.out.println("Gagal mengambil surplus tersedia: " + e.getMessage());
+        }
+
+        return surpluses;
+    }
 }

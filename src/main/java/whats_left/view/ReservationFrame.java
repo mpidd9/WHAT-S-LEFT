@@ -4,21 +4,143 @@
  */
 package whats_left.view;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import javax.swing.JOptionPane;
+import javax.swing.table.DefaultTableModel;
+import whats_left.model.ProductionRecord;
+import java.util.UUID;
+
+import whats_left.model.FoodItem;
+import whats_left.model.Reservation;
+import whats_left.model.SurplusListing;
+import whats_left.repository.FoodRepository;
+import whats_left.repository.ReservationRepository;
+import whats_left.repository.SurplusRepository;
+import whats_left.repository.ProductionRepository;
+import whats_left.repository.BusinessRepository;
+
 /**
  *
  * @author LOQ
  */
 public class ReservationFrame extends javax.swing.JFrame {
+    private ReservationRepository reservationRepository = new ReservationRepository();
+    private SurplusRepository surplusRepository = new SurplusRepository();
+    private FoodRepository foodRepository = new FoodRepository();
+    private ProductionRepository productionRepository = new ProductionRepository();
+
+    private List<SurplusListing> surplusList = new ArrayList<>();
+    private double selectedPrice = 0;
+    private int selectedStock = 0;
+    private int selectedListingId = -1;
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(ReservationFrame.class.getName());
+    private String mode;
 
     /**
      * Creates new form ReservationFrame
      */
-    public ReservationFrame() {
-        initComponents();
+    public ReservationFrame(String mode) {
+        this(mode, -1);
     }
 
+    public ReservationFrame(String mode, int listingId) {
+        this.mode = mode;
+        this.selectedListingId = listingId;
+
+        initComponents();
+        
+        if (mode.equals("Business")) {
+            jTable2.setModel(new DefaultTableModel(
+                    new Object[][]{},
+                    new String[]{
+                        "ID", "Kode Reservasi", "Nama Customer",
+                        "No. Telepon", "Nama Makanan",
+                        "Jumlah", "Total", "Status"
+                    }
+            ));
+            
+
+            jTable2.getColumnModel().getColumn(0).setMinWidth(0);
+            jTable2.getColumnModel().getColumn(0).setMaxWidth(0);
+            jTable2.getColumnModel().getColumn(0).setWidth(0);
+        }
+        
+        setLocationRelativeTo(null);
+        
+        if (mode.equals("Business")) {
+            jLabel2.setText("Business");
+            jLabel1.setText("Daftar Reservasi");
+            jButton2.setText("Makanan");
+            
+            jLabel3.setVisible(false);
+            jLabel4.setVisible(false);
+            jLabel5.setVisible(false);
+            jLabel7.setVisible(false);
+            jLabel8.setVisible(false);
+
+            jComboBox1.setVisible(false);
+            jComboBox2.setVisible(false);
+
+            jTextField1.setVisible(false);
+            jTextField2.setVisible(false);
+            jTextField4.setVisible(false);
+
+            jButton1.setVisible(false);
+            jButton8.setVisible(false);
+        } else {
+            jLabel2.setText("Customer");
+            jLabel1.setText("Reservasi Makanan");
+            jButton5.setVisible(false);
+        }
+
+        loadSurplusComboBox();
+        loadReservationTable();
+
+        jComboBox2.addActionListener(e -> calculateTotalPrice());
+        jTextField2.addActionListener(e -> loadReservationTable());
+
+        if (mode.equals("Customer") && selectedListingId != -1) {
+            for (int i = 0; i < surplusList.size(); i++) {
+                if (surplusList.get(i).getId() == selectedListingId) {
+                    jComboBox1.setSelectedIndex(i + 1);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void calculateTotalPrice() {
+        int quantity = 0;
+
+        if (jComboBox2.getSelectedItem() != null) {
+            try {
+                quantity = Integer.parseInt(
+                        jComboBox2.getSelectedItem().toString()
+                );
+            } catch (NumberFormatException e) {
+                quantity = 0;
+            }
+        }
+
+        double total = selectedPrice * quantity;
+
+        jTextField4.setText(String.valueOf(total));
+    }
+    
+    private void loadQuantityComboBox() {
+        jComboBox2.removeAllItems();
+        jComboBox2.addItem("Jumlah");
+
+        for (int i = 1; i <= selectedStock; i++) {
+            jComboBox2.addItem(String.valueOf(i));
+        }
+    }
+    
+    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -33,7 +155,6 @@ public class ReservationFrame extends javax.swing.JFrame {
         jLabel5 = new javax.swing.JLabel();
         jTextField1 = new javax.swing.JTextField();
         jLabel4 = new javax.swing.JLabel();
-        jButton5 = new javax.swing.JButton();
         jTextField4 = new javax.swing.JTextField();
         jScrollPane2 = new javax.swing.JScrollPane();
         jTable2 = new javax.swing.JTable();
@@ -50,7 +171,7 @@ public class ReservationFrame extends javax.swing.JFrame {
         jLabel7 = new javax.swing.JLabel();
         jTextField2 = new javax.swing.JTextField();
         jButton1 = new javax.swing.JButton();
-        jButton6 = new javax.swing.JButton();
+        jButton5 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -65,9 +186,6 @@ public class ReservationFrame extends javax.swing.JFrame {
 
         jLabel4.setFont(new java.awt.Font("Times New Roman", 0, 12)); // NOI18N
         jLabel4.setText("Jumlah Surplus  :");
-
-        jButton5.setText("Simpan");
-        jButton5.addActionListener(this::jButton5ActionPerformed);
 
         jTextField4.setEnabled(false);
 
@@ -91,6 +209,7 @@ public class ReservationFrame extends javax.swing.JFrame {
         jComboBox1.addActionListener(this::jComboBox1ActionPerformed);
 
         jPanel1.setBackground(new java.awt.Color(0, 204, 51));
+        jPanel1.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
 
         jLabel2.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
         jLabel2.setText("Customer");
@@ -101,9 +220,11 @@ public class ReservationFrame extends javax.swing.JFrame {
 
         jButton3.setFont(new java.awt.Font("Times New Roman", 0, 12)); // NOI18N
         jButton3.setText("Reservasi");
+        jButton3.addActionListener(this::jButton3ActionPerformed);
 
         jButton4.setFont(new java.awt.Font("Times New Roman", 0, 12)); // NOI18N
         jButton4.setText("Logout");
+        jButton4.addActionListener(this::jButton4ActionPerformed);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -147,9 +268,13 @@ public class ReservationFrame extends javax.swing.JFrame {
         jLabel7.setFont(new java.awt.Font("Times New Roman", 0, 12)); // NOI18N
         jLabel7.setText("Nomor Telepon :");
 
-        jButton1.setText("Reservasi");
+        jTextField2.setText("Enter Untuk Melihat Riwayat");
 
-        jButton6.setText("Reset");
+        jButton1.setText("Reservasi");
+        jButton1.addActionListener(this::jButton1ActionPerformed);
+
+        jButton5.setText("Ubah Status");
+        jButton5.addActionListener(this::jButton5ActionPerformed);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -163,13 +288,13 @@ public class ReservationFrame extends javax.swing.JFrame {
                     .addGroup(layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addComponent(jLabel1)
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(jButton5)
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 79, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                 .addComponent(jButton8, javax.swing.GroupLayout.PREFERRED_SIZE, 75, javax.swing.GroupLayout.PREFERRED_SIZE))
                             .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 559, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(jLabel6))
-                        .addContainerGap(13, Short.MAX_VALUE))
+                        .addContainerGap(12, Short.MAX_VALUE))
                     .addGroup(layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                             .addComponent(jLabel5, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -188,12 +313,9 @@ public class ReservationFrame extends javax.swing.JFrame {
                                 .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE, 98, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addGap(167, 167, 167))
                             .addGroup(layout.createSequentialGroup()
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                                    .addComponent(jTextField4, javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addGroup(layout.createSequentialGroup()
-                                        .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 79, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                        .addComponent(jButton6, javax.swing.GroupLayout.PREFERRED_SIZE, 75, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(jTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, 166, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(jButton5))
                                 .addContainerGap())))))
         );
         layout.setVerticalGroup(
@@ -215,53 +337,310 @@ public class ReservationFrame extends javax.swing.JFrame {
                         .addComponent(jLabel8)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(8, 8, 8)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(jLabel5)
-                            .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(25, 25, 25))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(jButton1)
-                            .addComponent(jButton6))
-                        .addGap(4, 4, 4)))
+                .addGap(8, 8, 8)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel5)
+                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(20, 20, 20)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel7)
-                    .addComponent(jTextField2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(22, 22, 22)
+                    .addComponent(jTextField2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jButton5))
+                .addGap(21, 21, 21)
                 .addComponent(jLabel6)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 177, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jButton5)
-                    .addComponent(jButton8))
-                .addContainerGap(11, Short.MAX_VALUE))
+                    .addComponent(jButton8)
+                    .addComponent(jButton1))
+                .addContainerGap(16, Short.MAX_VALUE))
             .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jButton5ActionPerformed
-
     private void jComboBox1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBox1ActionPerformed
         // TODO add your handling code here:
+        int selectedIndex = jComboBox1.getSelectedIndex();
+
+        jComboBox2.removeAllItems();
+        jComboBox2.addItem("Jumlah");
+
+        selectedPrice = 0;
+        selectedStock = 0;
+        jTextField4.setText("");
+
+        if (selectedIndex <= 0 || selectedIndex > surplusList.size()) {
+            return;
+        }
+
+        SurplusListing surplus = surplusList.get(selectedIndex - 1);
+
+        selectedPrice = surplus.getDiscountedPrice();
+        selectedStock = surplus.getAvailableQuantity();
+
+        loadQuantityComboBox();
+        calculateTotalPrice();
     }//GEN-LAST:event_jComboBox1ActionPerformed
 
     private void jButton8ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton8ActionPerformed
         // TODO add your handling code here:
+        jComboBox1.setSelectedIndex(0);
+
+        jComboBox2.removeAllItems();
+        jComboBox2.addItem("Jumlah");
+
+        jTextField1.setText("");
+        jTextField4.setText("");
+
+        selectedPrice = 0;
+        selectedStock = 0;
+        
+        loadReservationTable();
     }//GEN-LAST:event_jButton8ActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
         // TODO add your handling code here:
+        if (mode.equals("Business")) {
+            FoodFrame foodFrame = new FoodFrame("Business");
+            foodFrame.setVisible(true);
+        } else {
+            FoodFrame foodFrame = new FoodFrame("Customer");
+            foodFrame.setVisible(true);
+        }
+
+        this.dispose();
     }//GEN-LAST:event_jButton2ActionPerformed
 
+    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
+        // TODO add your handling code here:
+        loadReservationTable();
+    }//GEN-LAST:event_jButton3ActionPerformed
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        // TODO add your handling code here:
+        int selectedIndex = jComboBox1.getSelectedIndex();
+
+        String customerName = jTextField1.getText().trim();
+        String customerPhone = jTextField2.getText().trim();
+
+        if (selectedIndex <= 0 || selectedIndex > surplusList.size()) {
+            JOptionPane.showMessageDialog(this,
+                    "Silakan pilih makanan terlebih dahulu!");
+            return;
+        }
+
+        if (customerName.isEmpty() || customerPhone.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Nama dan nomor telepon harus diisi!");
+            return;
+        }
+        
+        if (!customerPhone.matches("[0-9]{10,15}")) {
+            JOptionPane.showMessageDialog(this,
+                    "Nomor telepon harus terdiri dari 10-15 digit angka!");
+            return;
+        }
+
+        if (jComboBox2.getSelectedIndex() <= 0) {
+            JOptionPane.showMessageDialog(this,
+                    "Silakan pilih jumlah makanan!");
+            return;
+        }
+
+        int quantity = Integer.parseInt(
+                jComboBox2.getSelectedItem().toString()
+        );
+
+        double totalPrice = selectedPrice * quantity;
+
+        SurplusListing surplus = surplusList.get(selectedIndex - 1);
+
+        String reservationCode = "RSV-"
+                + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
+        Reservation reservation = new Reservation();
+
+        reservation.setListingId(surplus.getId());
+        reservation.setCustomerName(customerName);
+        reservation.setCustomerPhone(customerPhone);
+        reservation.setReservationCode(reservationCode);
+        reservation.setQuantity(quantity);
+        reservation.setTotalPrice(totalPrice);
+        reservation.setStatus("Pending");
+
+        boolean success = reservationRepository.addReservation(reservation);
+
+        if (success) {
+            JOptionPane.showMessageDialog(this,
+                    "Reservasi berhasil!\n"
+                    + "Kode Reservasi: " + reservationCode);
+
+            loadReservationTable();
+            loadSurplusComboBox();
+
+            jComboBox2.removeAllItems();
+            jComboBox2.addItem("Jumlah");
+
+            jTextField1.setText("");
+            jTextField2.setText("");
+            jTextField4.setText("");
+
+            selectedPrice = 0;
+            selectedStock = 0;
+
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "Reservasi gagal. Stok mungkin sudah tidak mencukupi.");
+            loadSurplusComboBox();
+        }
+    }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
+        // TODO add your handling code here:
+        new MainFrame().setVisible(true);
+        this.dispose();
+    }//GEN-LAST:event_jButton4ActionPerformed
+
+    private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
+        // TODO add your handling code here:
+        int selectedRow = jTable2.getSelectedRow();
+
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this,
+                    "Pilih reservasi yang ingin diubah terlebih dahulu!");
+        } else {
+            int reservationId = Integer.parseInt(
+                    jTable2.getValueAt(selectedRow, 0).toString());
+
+            String currentStatus = jTable2.getValueAt(selectedRow, 7).toString();
+
+            String[] statusOptions = {
+                "Pending", "Confirmed", "Cancelled"
+            };
+
+            String selectedStatus = (String) JOptionPane.showInputDialog(
+                    this,
+                    "Pilih status reservasi:",
+                    "Ubah Status Reservasi",
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    statusOptions,
+                    currentStatus
+            );
+
+            if (selectedStatus != null) {
+                reservationRepository.updateReservationStatus(
+                        reservationId, selectedStatus);
+
+                JOptionPane.showMessageDialog(this,
+                        "Status reservasi berhasil diperbarui!");
+
+                loadReservationTable();
+            }
+        }
+    }//GEN-LAST:event_jButton5ActionPerformed
+
+    private void loadSurplusComboBox() {
+        jComboBox1.removeAllItems();
+        jComboBox1.addItem("Pilih Makanan");
+
+        surplusList.clear();
+
+        List<SurplusListing> allSurpluses = surplusRepository.getAllSurpluses();
+
+        try {
+            for (SurplusListing surplus : allSurpluses) {
+                if (surplus.getAvailableQuantity() > 0
+                        && surplus.getStatus().equals("Available")) {
+
+                    ProductionRecord production
+                            = productionRepository.getProductionById(
+                                    surplus.getProductionId()
+                            );
+
+                    if (production != null) {
+                        FoodItem food = foodRepository.getFoodById(
+                                production.getFoodId()
+                        );
+
+                        if (food != null) {
+                            surplusList.add(surplus);
+
+                            jComboBox1.addItem(food.getFoodName()
+                                    + " - Stok: "
+                                    + surplus.getAvailableQuantity());
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Gagal memuat makanan surplus: " + e.getMessage());
+        }
+    }
+    
+    private void loadReservationTable() {
+        DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
+        model.setRowCount(0);
+
+        List<Reservation> reservations;
+
+        if (mode.equals("Business")) {
+            reservations = reservationRepository.getAllReservations();
+        } else {
+            String customerPhone = jTextField2.getText().trim();
+            reservations = reservationRepository.getReservationsByPhone(customerPhone);
+        }
+
+        for (Reservation reservation : reservations) {
+            SurplusListing surplus
+                    = surplusRepository.getSurplusById(reservation.getListingId());
+
+            if (surplus != null) {
+                try {
+                    ProductionRecord production
+                            = productionRepository.getProductionById(
+                                    surplus.getProductionId()
+                            );
+
+                    if (production != null) {
+                        FoodItem food
+                                = foodRepository.getFoodById(production.getFoodId());
+
+                        if (food != null) {
+                            if (mode.equals("Business")) {
+                                model.addRow(new Object[]{
+                                    reservation.getId(),
+                                    reservation.getReservationCode(),
+                                    reservation.getCustomerName(),
+                                    reservation.getCustomerPhone(),
+                                    food.getFoodName(),
+                                    reservation.getQuantity(),
+                                    reservation.getTotalPrice(),
+                                    reservation.getStatus()
+                                });
+                            } else {
+                                model.addRow(new Object[]{
+                                    reservation.getReservationCode(),
+                                    food.getFoodName(),
+                                    reservation.getQuantity(),
+                                    reservation.getTotalPrice(),
+                                    reservation.getStatus()
+                                });
+                            }
+                        }
+                    }
+                } catch (SQLException e) {
+                    JOptionPane.showMessageDialog(this,
+                            "Gagal memuat detail reservasi: " + e.getMessage());
+                }
+            }
+        }
+    }
+    
     /**
      * @param args the command line arguments
      */
@@ -284,7 +663,7 @@ public class ReservationFrame extends javax.swing.JFrame {
         //</editor-fold>
 
         /* Create and display the form */
-        java.awt.EventQueue.invokeLater(() -> new ReservationFrame().setVisible(true));
+        java.awt.EventQueue.invokeLater(() -> new ReservationFrame("Customer").setVisible(true));
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -293,7 +672,6 @@ public class ReservationFrame extends javax.swing.JFrame {
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
     private javax.swing.JButton jButton5;
-    private javax.swing.JButton jButton6;
     private javax.swing.JButton jButton8;
     private javax.swing.JComboBox<String> jComboBox1;
     private javax.swing.JComboBox<String> jComboBox2;

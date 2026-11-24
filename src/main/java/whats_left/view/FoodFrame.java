@@ -9,6 +9,11 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.JOptionPane;
 import whats_left.model.FoodItem;
 import whats_left.repository.FoodRepository;
+import java.sql.SQLException;
+import whats_left.model.ProductionRecord;
+import whats_left.model.SurplusListing;
+import whats_left.repository.ProductionRepository;
+import whats_left.repository.SurplusRepository;
 /**
  *
  * @author LOQ
@@ -18,6 +23,9 @@ public class FoodFrame extends javax.swing.JFrame {
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(FoodFrame.class.getName());
     private String mode;
     private FoodRepository foodRepository = new FoodRepository();
+    
+    private ProductionRepository productionRepository = new ProductionRepository();
+    private SurplusRepository surplusRepository = new SurplusRepository();
     
     /**
      * Creates new form FoodFrame
@@ -29,6 +37,21 @@ public class FoodFrame extends javax.swing.JFrame {
         jLabel2.setText(mode);
 
         if (mode.equals("Customer")) {
+            jButton1.setText("Katalog");
+            
+            jTable2.setModel(new DefaultTableModel(
+                    new Object[][]{},
+                    new String[]{
+                        "ID", "Nama Makanan", "Kategori",
+                        "Harga Normal", "Diskon", "Harga Diskon",
+                        "Stok", "Pickup Mulai", "Pickup Selesai"
+                    }
+            ));
+
+            jTable2.getColumnModel().getColumn(0).setMinWidth(0);
+            jTable2.getColumnModel().getColumn(0).setMaxWidth(0);
+            jTable2.getColumnModel().getColumn(0).setWidth(0);
+            
             jLabel3.setVisible(false);
             jLabel4.setVisible(false);
             jLabel5.setVisible(false);
@@ -39,7 +62,9 @@ public class FoodFrame extends javax.swing.JFrame {
 
             jButton2.setVisible(false);
             jButton3.setVisible(false);
-            jButton5.setVisible(false);
+            jButton5.setVisible(true);
+            jButton5.setText("Reservasi");
+
             jButton6.setVisible(false);
             jButton7.setVisible(false);
             jButton8.setVisible(false);
@@ -76,23 +101,77 @@ public class FoodFrame extends javax.swing.JFrame {
             mainFrame.setVisible(true);
             this.dispose();
         });
+        
+        jButton9.addActionListener(e -> {
+            ReservationFrame reservationFrame;
+
+            if (mode.equals("Business")) {
+                reservationFrame = new ReservationFrame("Business");
+            } else {
+                reservationFrame = new ReservationFrame("Customer");
+            }
+
+            reservationFrame.setVisible(true);
+            this.dispose();
+        });
     }
     
     private void loadFoods() {
         DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
         model.setRowCount(0);
 
-        List<FoodItem> foods = foodRepository.getAllFoods();
+        if (mode.equals("Business")) {
+            List<FoodItem> foods = foodRepository.getAllFoods();
 
-        for (FoodItem food : foods) {
-            Object[] row = {
-                food.getId(),
-                food.getFoodName(),
-                food.getCategory(),
-                food.getRegularPrice()
-            };
+            for (FoodItem food : foods) {
+                Object[] row = {
+                    food.getId(),
+                    food.getFoodName(),
+                    food.getCategory(),
+                    food.getRegularPrice()
+                };
 
-            model.addRow(row);
+                model.addRow(row);
+            }
+
+        } else {
+            List<SurplusListing> surpluses = surplusRepository.getAvailableSurpluses();
+
+            try {
+                for (SurplusListing surplus : surpluses) {
+                    ProductionRecord production = productionRepository.getProductionById(
+                            surplus.getProductionId()
+                    );
+
+                    if (production != null) {
+                        FoodItem food = foodRepository.getFoodById(
+                                production.getFoodId()
+                        );
+
+                        if (food != null) {
+                            Object[] row = {
+                                surplus.getId(),
+                                food.getFoodName(),
+                                food.getCategory(),
+                                food.getRegularPrice(),
+                                surplus.getDiscountPercentage() + "%",
+                                surplus.getDiscountedPrice(),
+                                surplus.getAvailableQuantity(),
+                                surplus.getPickupStart(),
+                                surplus.getPickupEnd()
+                            };
+
+                            model.addRow(row);
+                        }
+                    }
+                }
+
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Gagal memuat katalog: " + e.getMessage()
+                );
+            }
         }
     }
 
@@ -114,6 +193,7 @@ public class FoodFrame extends javax.swing.JFrame {
         jButton2 = new javax.swing.JButton();
         jButton3 = new javax.swing.JButton();
         jButton4 = new javax.swing.JButton();
+        jButton9 = new javax.swing.JButton();
         jLabel3 = new javax.swing.JLabel();
         jLabel4 = new javax.swing.JLabel();
         jLabel5 = new javax.swing.JLabel();
@@ -148,6 +228,7 @@ public class FoodFrame extends javax.swing.JFrame {
         jLabel1.setText("Kelola Data Makanan");
 
         jPanel1.setBackground(new java.awt.Color(0, 204, 51));
+        jPanel1.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
 
         jLabel2.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
         jLabel2.setText("Business");
@@ -164,6 +245,9 @@ public class FoodFrame extends javax.swing.JFrame {
         jButton4.setFont(new java.awt.Font("Times New Roman", 0, 12)); // NOI18N
         jButton4.setText("Logout");
 
+        jButton9.setFont(new java.awt.Font("Times New Roman", 0, 12)); // NOI18N
+        jButton9.setText("Reservation");
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -179,7 +263,8 @@ public class FoodFrame extends javax.swing.JFrame {
                             .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jButton9, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addGap(18, 18, 18))))
         );
         jPanel1Layout.setVerticalGroup(
@@ -193,6 +278,8 @@ public class FoodFrame extends javax.swing.JFrame {
                 .addComponent(jButton2)
                 .addGap(18, 18, 18)
                 .addComponent(jButton3)
+                .addGap(18, 18, 18)
+                .addComponent(jButton9)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(jButton4)
                 .addGap(26, 26, 26))
@@ -268,7 +355,7 @@ public class FoodFrame extends javax.swing.JFrame {
                             .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                             .addComponent(jButton8, javax.swing.GroupLayout.PREFERRED_SIZE, 75, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addComponent(jScrollPane2, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 418, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(30, Short.MAX_VALUE))
+                .addContainerGap(26, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -306,6 +393,28 @@ public class FoodFrame extends javax.swing.JFrame {
 
     private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
         // TODO add your handling code here:
+        if (mode.equals("Customer")) {
+            int selectedRow = jTable2.getSelectedRow();
+
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(this,
+                        "Pilih makanan yang ingin dipesan!");
+                return;
+            }
+
+            int surplusId = Integer.parseInt(
+                    jTable2.getValueAt(selectedRow, 0).toString()
+            );
+
+            ReservationFrame reservationFrame
+                    = new ReservationFrame("Customer", surplusId);
+
+            reservationFrame.setVisible(true);
+            this.dispose();
+
+            return;
+        }
+        
         String foodName = jTextField1.getText();
         String category = jTextField2.getText();
         String priceText = jTextField3.getText();
@@ -465,6 +574,7 @@ public class FoodFrame extends javax.swing.JFrame {
     private javax.swing.JButton jButton6;
     private javax.swing.JButton jButton7;
     private javax.swing.JButton jButton8;
+    private javax.swing.JButton jButton9;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
