@@ -1,120 +1,35 @@
 package whats_left.view;
 
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
 import java.sql.SQLException;
 import java.util.Arrays;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JPasswordField;
-import javax.swing.JTextField;
-import javax.swing.SwingConstants;
-import javax.swing.WindowConstants;
-import javax.swing.border.EmptyBorder;
 import whats_left.model.Session;
 import whats_left.model.User;
 import whats_left.repository.UserRepository;
 
 /**
- * Halaman login. Menggantikan MainFrame sebagai halaman awal aplikasi.
+ * Halaman login. Didesain dengan NetBeans Form Editor (LoginFrame.form),
+ * sehingga tampilannya bisa diubah lewat tab Design.
  */
-public class LoginFrame extends JFrame {
+public class LoginFrame extends javax.swing.JFrame {
+
+    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(LoginFrame.class.getName());
     private final UserRepository userRepository = new UserRepository();
 
-    private final JTextField usernameField = new JTextField(20);
-    private final JPasswordField passwordField = new JPasswordField(20);
-
+    /**
+     * Creates new form LoginFrame
+     */
     public LoginFrame() {
-        setTitle("WHAT'S LEFT - Login");
-        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        initComponents();
 
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(new EmptyBorder(30, 50, 30, 50));
-        setContentPane(panel);
-
-        GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(6, 6, 6, 6);
-        c.fill = GridBagConstraints.HORIZONTAL;
-        c.gridx = 0;
-        c.gridwidth = 2;
-
-        JLabel title = new JLabel("WHAT'S LEFT", SwingConstants.CENTER);
-        title.setFont(new Font("Tw Cen MT", Font.BOLD, 40));
-        c.gridy = 0;
-        panel.add(title, c);
-
-        JLabel subtitle = new JLabel("Silakan login untuk melanjutkan",
-                SwingConstants.CENTER);
-        subtitle.setFont(new Font("Times New Roman", Font.PLAIN, 16));
-        c.gridy = 1;
-        c.insets = new Insets(0, 6, 20, 6);
-        panel.add(subtitle, c);
-
-        c.insets = new Insets(6, 6, 6, 6);
-        c.gridwidth = 1;
-
-        c.gridy = 2;
-        c.gridx = 0;
-        c.weightx = 0;
-        panel.add(label("Username :"), c);
-        c.gridx = 1;
-        c.weightx = 1;
-        panel.add(usernameField, c);
-
-        c.gridy = 3;
-        c.gridx = 0;
-        c.weightx = 0;
-        panel.add(label("Password :"), c);
-        c.gridx = 1;
-        c.weightx = 1;
-        panel.add(passwordField, c);
-
-        JButton loginButton = new JButton("Login");
-        loginButton.setBackground(new Color(0, 204, 51));
-        loginButton.setFont(new Font("Times New Roman", Font.BOLD, 14));
-        loginButton.addActionListener(e -> doLogin());
-
-        c.gridy = 4;
-        c.gridx = 0;
-        c.gridwidth = 2;
-        c.insets = new Insets(18, 6, 6, 6);
-        panel.add(loginButton, c);
-
-        JButton registerButton = new JButton("Belum punya akun? Daftar");
-        registerButton.setFont(new Font("Times New Roman", Font.PLAIN, 13));
-        registerButton.addActionListener(e -> {
-            new RegisterFrame().setVisible(true);
-            dispose();
-        });
-
-        c.gridy = 5;
-        c.insets = new Insets(6, 6, 6, 6);
-        panel.add(registerButton, c);
-
-        // Enter di kolom mana pun = login
-        usernameField.addActionListener(e -> doLogin());
-        passwordField.addActionListener(e -> doLogin());
-        getRootPane().setDefaultButton(loginButton);
-
-        pack();
+        // Enter di kolom mana pun = tombol Login
+        getRootPane().setDefaultButton(btnLogin);
         setLocationRelativeTo(null);
     }
 
-    private JLabel label(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(new Font("Times New Roman", Font.PLAIN, 14));
-        return label;
-    }
-
     private void doLogin() {
-        String username = usernameField.getText().trim();
-        char[] password = passwordField.getPassword();
+        String username = txtUsername.getText().trim();
+        char[] password = txtPassword.getPassword();
 
         try {
             if (username.isEmpty() || password.length == 0) {
@@ -129,7 +44,7 @@ public class LoginFrame extends JFrame {
                 JOptionPane.showMessageDialog(this,
                         "Username atau password salah!",
                         "Login gagal", JOptionPane.ERROR_MESSAGE);
-                passwordField.setText("");
+                txtPassword.setText("");
                 return;
             }
 
@@ -149,4 +64,142 @@ public class LoginFrame extends JFrame {
             Arrays.fill(password, '\0');
         }
     }
+
+    /**
+     * This method is called from within the constructor to initialize the form.
+     * WARNING: Do NOT modify this code. The content of this method is always
+     * regenerated by the Form Editor.
+     */
+    @SuppressWarnings("unchecked")
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    private void initComponents() {
+
+        lblTitle = new javax.swing.JLabel();
+        lblSubtitle = new javax.swing.JLabel();
+        lblUsername = new javax.swing.JLabel();
+        txtUsername = new javax.swing.JTextField();
+        lblPassword = new javax.swing.JLabel();
+        txtPassword = new javax.swing.JPasswordField();
+        btnLogin = new javax.swing.JButton();
+        btnRegister = new javax.swing.JButton();
+
+        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("WHAT'S LEFT - Login");
+        setResizable(false);
+
+        lblTitle.setFont(new java.awt.Font("Tw Cen MT", 1, 40)); // NOI18N
+        lblTitle.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblTitle.setText("WHAT'S LEFT");
+
+        lblSubtitle.setFont(new java.awt.Font("Times New Roman", 0, 16)); // NOI18N
+        lblSubtitle.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblSubtitle.setText("Silakan login untuk melanjutkan");
+
+        lblUsername.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
+        lblUsername.setText("Username :");
+
+
+        lblPassword.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
+        lblPassword.setText("Password :");
+
+
+        btnLogin.setBackground(new java.awt.Color(0, 204, 51));
+        btnLogin.setFont(new java.awt.Font("Times New Roman", 1, 14)); // NOI18N
+        btnLogin.setText("Login");
+        btnLogin.addActionListener(this::btnLoginActionPerformed);
+
+        btnRegister.setFont(new java.awt.Font("Times New Roman", 0, 13)); // NOI18N
+        btnRegister.setText("Belum punya akun? Daftar");
+        btnRegister.addActionListener(this::btnRegisterActionPerformed);
+
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
+        getContentPane().setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(40, 40, 40)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(lblTitle, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(lblSubtitle, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(lblUsername, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(lblPassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(18, 18, 18)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(txtUsername, javax.swing.GroupLayout.PREFERRED_SIZE, 220, Short.MAX_VALUE)
+                            .addComponent(txtPassword, javax.swing.GroupLayout.PREFERRED_SIZE, 220, Short.MAX_VALUE)))
+                    .addComponent(btnLogin, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btnRegister, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(40, 40, 40))
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(30, 30, 30)
+                .addComponent(lblTitle, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(4, 4, 4)
+                .addComponent(lblSubtitle, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(24, 24, 24)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(lblUsername, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtUsername, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(lblPassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtPassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(24, 24, 24)
+                .addComponent(btnLogin, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(btnRegister, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(30, 30, 30))
+        );
+
+        pack();
+    }// </editor-fold>//GEN-END:initComponents
+
+    private void btnLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLoginActionPerformed
+        doLogin();
+    }//GEN-LAST:event_btnLoginActionPerformed
+
+    private void btnRegisterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRegisterActionPerformed
+        new RegisterFrame().setVisible(true);
+        dispose();
+    }//GEN-LAST:event_btnRegisterActionPerformed
+
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String args[]) {
+        /* Set the Nimbus look and feel */
+        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
+        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
+         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+         */
+        try {
+            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
+            logger.log(java.util.logging.Level.SEVERE, null, ex);
+        }
+        //</editor-fold>
+
+        /* Create and display the form */
+        java.awt.EventQueue.invokeLater(() -> new LoginFrame().setVisible(true));
+    }
+
+    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnLogin;
+    private javax.swing.JButton btnRegister;
+    private javax.swing.JLabel lblPassword;
+    private javax.swing.JLabel lblSubtitle;
+    private javax.swing.JLabel lblTitle;
+    private javax.swing.JLabel lblUsername;
+    private javax.swing.JPasswordField txtPassword;
+    private javax.swing.JTextField txtUsername;
+    // End of variables declaration//GEN-END:variables
 }

@@ -333,5 +333,15 @@ Praktikum Pemrograman Berorientasi Objek (PBO).
 
 1. Nyalakan **MySQL** (Laragon → Start All).
 2. Jalankan `schema.sql` di HeidiSQL/phpMyAdmin untuk membuat database `whats_left_pbo` dan seluruh tabel.
+   - Aplikasi ini **tidak memakai data dummy**. Seluruh data dibuat langsung lewat aplikasi.
+   - Jika database lama sudah pernah diisi data dummy, jalankan `cleanup_dummy.sql` satu kali (baca petunjuk di dalam file sebelum menjalankan).
 3. Buka proyek di NetBeans, lalu **Run Project**. Aplikasi dimulai dari halaman Login.
-4. Pertama kali: pilih **Daftar**, buat akun Business (untuk mengelola makanan) dan akun Customer (untuk reservasi).
+4. Pilih **Daftar**, lalu buat akun **Business** dan akun **Customer**.
+
+### Alur pengujian
+
+1. Login sebagai **Business** → *Makanan*: tambah makanan → *Produksi*: catat produksi (surplus dihitung otomatis) → *Surplus*: buat penawaran (diskon, jumlah, waktu pengambilan).
+2. Logout, login sebagai **Customer** → katalog menampilkan penawaran dari semua Business → pilih makanan dan jumlah → **Reservasi** → catat kode reservasi.
+3. Logout, login kembali sebagai **Business** pemilik makanan tersebut → *Reservasi*: reservasi masuk dan statusnya dapat diperbarui.
+
+Catatan: Business hanya melihat reservasi untuk makanan miliknya sendiri. Reservasi untuk makanan bisnis lain tidak akan muncul di akunnya.

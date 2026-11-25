@@ -104,6 +104,10 @@ public class SurplusFrame extends javax.swing.JFrame {
         
         jTextField2.setEditable(false);
         jTextField3.setEditable(false);
+
+        jTextField5.setToolTipText(
+                "Format: yyyy-MM-dd HH:mm, contoh: " + exampleDateTime(3));
+        setDefaultPickupEnd();
         
         jTextField1.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
@@ -142,7 +146,8 @@ public class SurplusFrame extends javax.swing.JFrame {
         try {
             List<ProductionRecord> productions = productionRepository.getProductionsByBusiness(
                     whats_left.model.Session.getBusinessId());
-            List<SurplusListing> surpluses = surplusRepository.getAllSurpluses();
+            List<SurplusListing> surpluses = surplusRepository.getSurplusesByBusiness(
+                    whats_left.model.Session.getBusinessId());
 
             for (ProductionRecord production : productions) {
                 int surplus = production.calculateSurplus();
@@ -239,6 +244,17 @@ public class SurplusFrame extends javax.swing.JFrame {
         }
     }
     
+    /** Contoh tanggal-waktu (sekarang + beberapa jam) dalam format input. */
+    private String exampleDateTime(int hoursAhead) {
+        return LocalDateTime.now().plusHours(hoursAhead)
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+    }
+
+    /** Mengisi kolom Batas Pengambilan dengan nilai awal: 3 jam dari sekarang. */
+    private void setDefaultPickupEnd() {
+        jTextField5.setText(exampleDateTime(3));
+    }
+
     private Timestamp getPickupEnd() {
         try {
             DateTimeFormatter formatter
@@ -260,7 +276,8 @@ public class SurplusFrame extends javax.swing.JFrame {
 
         } catch (DateTimeParseException e) {
             JOptionPane.showMessageDialog(this,
-                    "Format waktu salah!\nGunakan format: yyyy-MM-dd HH:mm");
+                    "Format waktu salah!\nGunakan format: yyyy-MM-dd HH:mm\n"
+                    + "Contoh: " + exampleDateTime(3));
             return null;
         }
     }
@@ -620,7 +637,7 @@ public class SurplusFrame extends javax.swing.JFrame {
                 jTextField2.setText("");
                 jTextField3.setText("");
                 jTextField4.setText("");
-                jTextField5.setText("");
+                setDefaultPickupEnd();
 
                 selectedSurplusId = -1;
                 jTable2.clearSelection();
@@ -650,7 +667,7 @@ public class SurplusFrame extends javax.swing.JFrame {
         jTextField2.setText("");
         jTextField3.setText("");
         jTextField4.setText("");
-        jTextField5.setText("");
+        setDefaultPickupEnd();
     }//GEN-LAST:event_jButton8ActionPerformed
 
     private void jComboBox1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBox1ActionPerformed
@@ -711,7 +728,7 @@ public class SurplusFrame extends javax.swing.JFrame {
                 jTextField2.setText("");
                 jTextField3.setText("");
                 jTextField4.setText("");
-                jTextField5.setText("");
+                setDefaultPickupEnd();
 
                 loadSurplusTable();
                 loadProductionComboBox();
@@ -776,7 +793,7 @@ public class SurplusFrame extends javax.swing.JFrame {
                 jTextField2.setText("");
                 jTextField3.setText("");
                 jTextField4.setText("");
-                jTextField5.setText("");
+                setDefaultPickupEnd();
 
                 loadSurplusTable();
                 loadProductionComboBox();

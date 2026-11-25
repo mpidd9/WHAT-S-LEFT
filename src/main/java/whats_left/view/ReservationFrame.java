@@ -734,7 +734,7 @@ public class ReservationFrame extends javax.swing.JFrame {
 
         surplusList.clear();
 
-        List<SurplusListing> allSurpluses = surplusRepository.getAllSurpluses();
+        List<SurplusListing> allSurpluses = surplusRepository.getAvailableSurpluses();
 
         try {
             for (SurplusListing surplus : allSurpluses) {

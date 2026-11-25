@@ -1,131 +1,43 @@
 package whats_left.view;
 
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
 import java.sql.SQLException;
 import java.util.Arrays;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JPasswordField;
-import javax.swing.JTextField;
-import javax.swing.SwingConstants;
-import javax.swing.WindowConstants;
-import javax.swing.border.EmptyBorder;
 import whats_left.model.User;
 import whats_left.repository.UserRepository;
 
 /**
- * Halaman pendaftaran akun Customer atau Business.
+ * Halaman pendaftaran akun Customer atau Business. Didesain dengan NetBeans
+ * Form Editor (RegisterFrame.form), sehingga tampilannya bisa diubah lewat
+ * tab Design.
  */
-public class RegisterFrame extends JFrame {
+public class RegisterFrame extends javax.swing.JFrame {
+
+    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(RegisterFrame.class.getName());
     private final UserRepository userRepository = new UserRepository();
 
-    private final JComboBox<String> roleBox
-            = new JComboBox<>(new String[]{User.ROLE_CUSTOMER, User.ROLE_BUSINESS});
-    private final JTextField usernameField = new JTextField(20);
-    private final JPasswordField passwordField = new JPasswordField(20);
-    private final JPasswordField confirmField = new JPasswordField(20);
-    private final JTextField nameField = new JTextField(20);
-    private final JTextField phoneField = new JTextField(20);
-    private final JTextField addressField = new JTextField(20);
-
-    private final JLabel nameLabel = label("Nama Lengkap :");
-    private final JLabel addressLabel = label("Alamat :");
-
+    /**
+     * Creates new form RegisterFrame
+     */
     public RegisterFrame() {
-        setTitle("WHAT'S LEFT - Daftar Akun");
-        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        initComponents();
 
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(new EmptyBorder(24, 44, 24, 44));
-        setContentPane(panel);
-
-        GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(5, 6, 5, 6);
-        c.fill = GridBagConstraints.HORIZONTAL;
-
-        JLabel title = new JLabel("Daftar Akun", SwingConstants.CENTER);
-        title.setFont(new Font("Tw Cen MT", Font.BOLD, 32));
-        c.gridx = 0;
-        c.gridy = 0;
-        c.gridwidth = 2;
-        c.insets = new Insets(0, 6, 16, 6);
-        panel.add(title, c);
-
-        c.insets = new Insets(5, 6, 5, 6);
-        c.gridwidth = 1;
-
-        int row = 1;
-        row = addRow(panel, c, row, label("Daftar sebagai :"), roleBox);
-        row = addRow(panel, c, row, label("Username :"), usernameField);
-        row = addRow(panel, c, row, label("Password :"), passwordField);
-        row = addRow(panel, c, row, label("Ulangi Password :"), confirmField);
-        row = addRow(panel, c, row, nameLabel, nameField);
-        row = addRow(panel, c, row, label("Nomor Telepon :"), phoneField);
-        row = addRow(panel, c, row, addressLabel, addressField);
-
-        JButton registerButton = new JButton("Daftar");
-        registerButton.setBackground(new Color(0, 204, 51));
-        registerButton.setFont(new Font("Times New Roman", Font.BOLD, 14));
-        registerButton.addActionListener(e -> doRegister());
-
-        c.gridx = 0;
-        c.gridy = row++;
-        c.gridwidth = 2;
-        c.insets = new Insets(16, 6, 6, 6);
-        panel.add(registerButton, c);
-
-        JButton backButton = new JButton("Sudah punya akun? Login");
-        backButton.setFont(new Font("Times New Roman", Font.PLAIN, 13));
-        backButton.addActionListener(e -> backToLogin());
-
-        c.gridy = row;
-        c.insets = new Insets(6, 6, 6, 6);
-        panel.add(backButton, c);
-
-        roleBox.addActionListener(e -> updateRoleFields());
-        getRootPane().setDefaultButton(registerButton);
-
+        getRootPane().setDefaultButton(btnRegister);
         updateRoleFields();
-        pack();
         setLocationRelativeTo(null);
     }
 
-    private int addRow(JPanel panel, GridBagConstraints c, int row,
-            JLabel label, java.awt.Component field) {
-        c.gridy = row;
-        c.gridx = 0;
-        c.weightx = 0;
-        panel.add(label, c);
-        c.gridx = 1;
-        c.weightx = 1;
-        panel.add(field, c);
-        return row + 1;
-    }
-
-    private static JLabel label(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(new Font("Times New Roman", Font.PLAIN, 14));
-        return label;
-    }
-
     private boolean isBusiness() {
-        return User.ROLE_BUSINESS.equals(roleBox.getSelectedItem());
+        return User.ROLE_BUSINESS.equals(cmbRole.getSelectedItem());
     }
 
+    /** Menyesuaikan isian: Business memerlukan alamat, Customer tidak. */
     private void updateRoleFields() {
         boolean business = isBusiness();
 
-        nameLabel.setText(business ? "Nama Bisnis :" : "Nama Lengkap :");
-        addressLabel.setVisible(business);
-        addressField.setVisible(business);
+        lblName.setText(business ? "Nama Bisnis :" : "Nama Lengkap :");
+        lblAddress.setVisible(business);
+        txtAddress.setVisible(business);
 
         pack();
     }
@@ -136,12 +48,12 @@ public class RegisterFrame extends JFrame {
     }
 
     private void doRegister() {
-        String username = usernameField.getText().trim();
-        String name = nameField.getText().trim();
-        String phone = phoneField.getText().trim();
-        String address = addressField.getText().trim();
-        char[] password = passwordField.getPassword();
-        char[] confirm = confirmField.getPassword();
+        String username = txtUsername.getText().trim();
+        String name = txtName.getText().trim();
+        String phone = txtPhone.getText().trim();
+        String address = txtAddress.getText().trim();
+        char[] password = txtPassword.getPassword();
+        char[] confirm = txtConfirm.getPassword();
 
         try {
             String error = validate(username, password, confirm, name, phone, address);
@@ -213,4 +125,208 @@ public class RegisterFrame extends JFrame {
 
         return null;
     }
+
+    /**
+     * This method is called from within the constructor to initialize the form.
+     * WARNING: Do NOT modify this code. The content of this method is always
+     * regenerated by the Form Editor.
+     */
+    @SuppressWarnings("unchecked")
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    private void initComponents() {
+
+        lblTitle = new javax.swing.JLabel();
+        lblRole = new javax.swing.JLabel();
+        cmbRole = new javax.swing.JComboBox<>();
+        lblUsername = new javax.swing.JLabel();
+        txtUsername = new javax.swing.JTextField();
+        lblPassword = new javax.swing.JLabel();
+        txtPassword = new javax.swing.JPasswordField();
+        lblConfirm = new javax.swing.JLabel();
+        txtConfirm = new javax.swing.JPasswordField();
+        lblName = new javax.swing.JLabel();
+        txtName = new javax.swing.JTextField();
+        lblPhone = new javax.swing.JLabel();
+        txtPhone = new javax.swing.JTextField();
+        lblAddress = new javax.swing.JLabel();
+        txtAddress = new javax.swing.JTextField();
+        btnRegister = new javax.swing.JButton();
+        btnBack = new javax.swing.JButton();
+
+        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("WHAT'S LEFT - Daftar Akun");
+        setResizable(false);
+
+        lblTitle.setFont(new java.awt.Font("Tw Cen MT", 1, 32)); // NOI18N
+        lblTitle.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblTitle.setText("Daftar Akun");
+
+        lblRole.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
+        lblRole.setText("Daftar sebagai :");
+
+        cmbRole.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Customer", "Business" }));
+        cmbRole.addActionListener(this::cmbRoleActionPerformed);
+
+        lblUsername.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
+        lblUsername.setText("Username :");
+
+
+        lblPassword.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
+        lblPassword.setText("Password :");
+
+
+        lblConfirm.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
+        lblConfirm.setText("Ulangi Password :");
+
+
+        lblName.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
+        lblName.setText("Nama Lengkap :");
+
+
+        lblPhone.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
+        lblPhone.setText("Nomor Telepon :");
+
+
+        lblAddress.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
+        lblAddress.setText("Alamat :");
+
+
+        btnRegister.setBackground(new java.awt.Color(0, 204, 51));
+        btnRegister.setFont(new java.awt.Font("Times New Roman", 1, 14)); // NOI18N
+        btnRegister.setText("Daftar");
+        btnRegister.addActionListener(this::btnRegisterActionPerformed);
+
+        btnBack.setFont(new java.awt.Font("Times New Roman", 0, 13)); // NOI18N
+        btnBack.setText("Sudah punya akun? Login");
+        btnBack.addActionListener(this::btnBackActionPerformed);
+
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
+        getContentPane().setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(40, 40, 40)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(lblTitle, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(lblRole, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(lblUsername, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(lblPassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(lblConfirm, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(lblName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(lblPhone, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(lblAddress, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(18, 18, 18)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(cmbRole, javax.swing.GroupLayout.PREFERRED_SIZE, 240, Short.MAX_VALUE)
+                            .addComponent(txtUsername, javax.swing.GroupLayout.PREFERRED_SIZE, 240, Short.MAX_VALUE)
+                            .addComponent(txtPassword, javax.swing.GroupLayout.PREFERRED_SIZE, 240, Short.MAX_VALUE)
+                            .addComponent(txtConfirm, javax.swing.GroupLayout.PREFERRED_SIZE, 240, Short.MAX_VALUE)
+                            .addComponent(txtName, javax.swing.GroupLayout.PREFERRED_SIZE, 240, Short.MAX_VALUE)
+                            .addComponent(txtPhone, javax.swing.GroupLayout.PREFERRED_SIZE, 240, Short.MAX_VALUE)
+                            .addComponent(txtAddress, javax.swing.GroupLayout.PREFERRED_SIZE, 240, Short.MAX_VALUE)))
+                    .addComponent(btnRegister, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btnBack, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(40, 40, 40))
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(24, 24, 24)
+                .addComponent(lblTitle, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(20, 20, 20)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(lblRole, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(cmbRole, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(lblUsername, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtUsername, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(lblPassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtPassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(lblConfirm, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtConfirm, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(lblName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(lblPhone, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtPhone, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(lblAddress, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtAddress, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(20, 20, 20)
+                .addComponent(btnRegister, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(btnBack, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(24, 24, 24))
+        );
+
+        pack();
+    }// </editor-fold>//GEN-END:initComponents
+
+    private void cmbRoleActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmbRoleActionPerformed
+        updateRoleFields();
+    }//GEN-LAST:event_cmbRoleActionPerformed
+
+    private void btnRegisterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRegisterActionPerformed
+        doRegister();
+    }//GEN-LAST:event_btnRegisterActionPerformed
+
+    private void btnBackActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBackActionPerformed
+        backToLogin();
+    }//GEN-LAST:event_btnBackActionPerformed
+
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String args[]) {
+        /* Set the Nimbus look and feel */
+        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
+        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
+         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+         */
+        try {
+            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
+            logger.log(java.util.logging.Level.SEVERE, null, ex);
+        }
+        //</editor-fold>
+
+        /* Create and display the form */
+        java.awt.EventQueue.invokeLater(() -> new RegisterFrame().setVisible(true));
+    }
+
+    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnBack;
+    private javax.swing.JButton btnRegister;
+    private javax.swing.JComboBox<String> cmbRole;
+    private javax.swing.JLabel lblAddress;
+    private javax.swing.JLabel lblConfirm;
+    private javax.swing.JLabel lblName;
+    private javax.swing.JLabel lblPassword;
+    private javax.swing.JLabel lblPhone;
+    private javax.swing.JLabel lblRole;
+    private javax.swing.JLabel lblTitle;
+    private javax.swing.JLabel lblUsername;
+    private javax.swing.JPasswordField txtConfirm;
+    private javax.swing.JPasswordField txtPassword;
+    private javax.swing.JTextField txtAddress;
+    private javax.swing.JTextField txtName;
+    private javax.swing.JTextField txtPhone;
+    private javax.swing.JTextField txtUsername;
+    // End of variables declaration//GEN-END:variables
 }
