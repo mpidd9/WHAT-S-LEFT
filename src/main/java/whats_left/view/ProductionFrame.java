@@ -59,8 +59,9 @@ public class ProductionFrame extends javax.swing.JFrame {
         });
 
         jButton4.addActionListener(e -> {
-            MainFrame mainFrame = new MainFrame();
-            mainFrame.setVisible(true);
+            whats_left.model.Session.logout();
+            LoginFrame loginFrame = new LoginFrame();
+            loginFrame.setVisible(true);
             this.dispose();
         });
         
@@ -130,7 +131,8 @@ public class ProductionFrame extends javax.swing.JFrame {
     }
     
     private void loadFoodList() {
-        foodList = foodRepository.getAllFoods();
+        foodList = foodRepository.getFoodsByBusiness(
+                whats_left.model.Session.getBusinessId());
 
         jComboBox1.removeAllItems();
         jComboBox1.addItem("Pilih Makanan");
@@ -146,7 +148,8 @@ public class ProductionFrame extends javax.swing.JFrame {
         model.setRowCount(0);
 
         try {
-            List<ProductionRecord> productions = productionRepository.getAllProductions();
+            List<ProductionRecord> productions = productionRepository.getProductionsByBusiness(
+                    whats_left.model.Session.getBusinessId());
 
             for (ProductionRecord production : productions) {
                 FoodItem food = foodRepository.getFoodById(production.getFoodId());

@@ -114,6 +114,36 @@ public class ProductionRepository {
         return productions;
     }
 
+    /** Catatan produksi milik satu bisnis (lewat relasi food_items). */
+    public List<ProductionRecord> getProductionsByBusiness(int businessId) throws SQLException {
+        List<ProductionRecord> productions = new ArrayList<>();
+        String sql = "SELECT p.* FROM production_records p "
+                + "JOIN food_items f ON p.food_id = f.id "
+                + "WHERE f.business_id = ?";
+
+        try (Connection connection = DatabaseUtil.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, businessId);
+
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    productions.add(new ProductionRecord(
+                            result.getInt("id"),
+                            result.getInt("food_id"),
+                            result.getTimestamp("production_date"),
+                            result.getInt("total_produced"),
+                            result.getInt("regular_sold"),
+                            result.getInt("wasted"),
+                            result.getTimestamp("created_at")
+                    ));
+                }
+            }
+        }
+
+        return productions;
+    }
+
     public ProductionRecord getProductionById(int id) throws SQLException {
         ProductionRecord production = null;
         String sql = "SELECT * FROM production_records WHERE id = ?";

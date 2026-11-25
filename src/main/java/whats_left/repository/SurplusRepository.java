@@ -82,6 +82,46 @@ public class SurplusRepository {
         return surpluses;
     }
 
+    /** Penawaran surplus milik satu bisnis (lewat production_records dan food_items). */
+    public List<SurplusListing> getSurplusesByBusiness(int businessId) {
+        List<SurplusListing> surpluses = new ArrayList<>();
+        String sql = "SELECT s.* FROM surplus_listings s "
+                + "JOIN production_records p ON s.production_id = p.id "
+                + "JOIN food_items f ON p.food_id = f.id "
+                + "WHERE f.business_id = ?";
+
+        try {
+            Connection connection = DatabaseUtil.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setInt(1, businessId);
+            ResultSet result = statement.executeQuery();
+
+            while (result.next()) {
+                surpluses.add(new SurplusListing(
+                    result.getInt("id"),
+                    result.getInt("production_id"),
+                    result.getDouble("discount_percentage"),
+                    result.getDouble("discounted_price"),
+                    result.getInt("initial_quantity"),
+                    result.getInt("available_quantity"),
+                    result.getTimestamp("pickup_start"),
+                    result.getTimestamp("pickup_end"),
+                    result.getString("status"),
+                    result.getTimestamp("created_at")
+                ));
+            }
+
+            result.close();
+            statement.close();
+            connection.close();
+
+        } catch (SQLException e) {
+            System.out.println("Gagal mengambil data surplus bisnis: " + e.getMessage());
+        }
+
+        return surpluses;
+    }
+
     public SurplusListing getSurplusById(int id) {
         SurplusListing surplus = null;
         String sql = "SELECT * FROM surplus_listings WHERE id = ?";

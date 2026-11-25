@@ -97,8 +97,9 @@ public class FoodFrame extends javax.swing.JFrame {
             this.dispose();
         });
         jButton4.addActionListener(e -> {
-            MainFrame mainFrame = new MainFrame();
-            mainFrame.setVisible(true);
+            whats_left.model.Session.logout();
+            LoginFrame loginFrame = new LoginFrame();
+            loginFrame.setVisible(true);
             this.dispose();
         });
         
@@ -121,7 +122,8 @@ public class FoodFrame extends javax.swing.JFrame {
         model.setRowCount(0);
 
         if (mode.equals("Business")) {
-            List<FoodItem> foods = foodRepository.getAllFoods();
+            List<FoodItem> foods = foodRepository.getFoodsByBusiness(
+                    whats_left.model.Session.getBusinessId());
 
             for (FoodItem food : foods) {
                 Object[] row = {
@@ -426,7 +428,7 @@ public class FoodFrame extends javax.swing.JFrame {
                 double price = Double.parseDouble(priceText);
 
                 FoodItem food = new FoodItem();
-                food.setBusinessId(1);
+                food.setBusinessId(whats_left.model.Session.getBusinessId());
                 food.setFoodName(foodName);
                 food.setCategory(category);
                 food.setRegularPrice(price);

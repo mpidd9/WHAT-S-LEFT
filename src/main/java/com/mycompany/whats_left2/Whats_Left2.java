@@ -1,37 +1,19 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- */
-
 package com.mycompany.whats_left2;
 
 import javax.swing.SwingUtilities;
-import whats_left.view.MainFrame;
-import whats_left.repository.DatabaseUtil;
-import java.sql.Connection;
-import java.sql.SQLException;
+import whats_left.view.LoginFrame;
 
 /**
+ * Titik masuk aplikasi WHAT'S LEFT.
+ * Aplikasi selalu dimulai dari halaman login. Koneksi database dicek saat
+ * login/daftar, dan jika gagal akan muncul dialog (bukan program diam-diam
+ * berhenti tanpa jendela).
  *
  * @author LOQ
  */
 public class Whats_Left2 {
 
     public static void main(String[] args) {
-        try {
-            Connection connection = DatabaseUtil.getConnection();
-
-            System.out.println("Koneksi database berhasil!");
-
-            connection.close();
-
-            SwingUtilities.invokeLater(() -> {
-                MainFrame mainFrame = new MainFrame();
-                mainFrame.setVisible(true);
-            });
-
-        } catch (SQLException e) {
-            System.out.println("Koneksi database gagal!");
-            System.out.println(e.getMessage());
-        }
+        SwingUtilities.invokeLater(() -> new LoginFrame().setVisible(true));
     }
 }

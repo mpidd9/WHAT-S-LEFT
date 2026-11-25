@@ -54,10 +54,16 @@ Customer memiliki beberapa fitur utama berikut:
 
 ## 4. Alur Penggunaan Aplikasi
 
+### 4.0 Login dan Register
+
+1. Aplikasi selalu dimulai dari halaman **Login**.
+2. Pengguna yang belum punya akun memilih **Daftar**, lalu mendaftar sebagai **Customer** (nama, nomor telepon) atau **Business** (nama bisnis, alamat, nomor telepon).
+3. Password disimpan dalam bentuk hash (PBKDF2), bukan teks asli.
+4. Setelah login, sistem mengarahkan pengguna ke halaman sesuai perannya. Business hanya melihat data bisnisnya sendiri, dan Customer melihat riwayat reservasi akunnya sendiri.
+
 ### 4.1 Alur Business
 
-1. Pengguna memilih menu **Business** pada halaman utama.
-2. Sistem menampilkan halaman pengelolaan Business.
+1. Business login, lalu sistem menampilkan halaman pengelolaan Business.
 3. Business mengelola daftar makanan yang dijual.
 4. Business mencatat jumlah makanan yang diproduksi, terjual secara reguler, dan terbuang.
 5. Sistem menghitung jumlah makanan surplus.
@@ -69,16 +75,22 @@ Customer memiliki beberapa fitur utama berikut:
 
 ### 4.2 Alur Customer
 
-1. Pengguna memilih menu **Customer** pada halaman utama.
+1. Customer login pada halaman Login.
 2. Sistem menampilkan katalog makanan surplus.
 3. Customer memilih makanan dan melihat informasi penawaran.
 4. Customer menentukan jumlah makanan yang ingin dipesan.
 5. Sistem memeriksa ketersediaan stok dan menghitung total harga.
-6. Customer mengisi nama dan nomor telepon untuk reservasi.
+6. Nama dan nomor telepon Customer terisi otomatis dari akun, sehingga Customer tinggal memilih makanan dan jumlah.
 7. Sistem menyimpan data reservasi dan mengurangi jumlah stok yang tersedia.
 8. Customer memperoleh kode reservasi.
 9. Customer mengambil makanan secara langsung sesuai waktu yang ditentukan.
-10. Business memperbarui status reservasi menjadi selesai setelah makanan diambil.
+10. Business memperbarui status reservasi menjadi **Completed** setelah makanan diambil.
+
+**Status reservasi:** `Pending` → `Confirmed` → `Completed`, atau `Cancelled`.
+- `Completed` dan `Cancelled` bersifat final (tidak dapat diubah lagi).
+- Saat reservasi `Cancelled` (oleh Customer maupun Business), stok penawaran dikembalikan otomatis.
+- Customer hanya dapat membatalkan reservasinya sendiri saat status masih `Pending`.
+- Business hanya dapat menghapus riwayat reservasi yang berstatus `Completed` atau `Cancelled`.
 
 
 ## 5. Perhitungan dalam Aplikasi
@@ -129,17 +141,18 @@ Fitur ini bertujuan membantu Business memperkirakan kebutuhan produksi agar juml
 
 ## 6. Rancangan Frame Aplikasi
 
-Aplikasi WHAT'S LEFT dirancang menggunakan lima JFrame utama yang saling terhubung melalui tombol navigasi.
+Aplikasi WHAT'S LEFT dirancang menggunakan JFrame yang saling terhubung melalui tombol navigasi. Halaman awal adalah LoginFrame (menggantikan MainFrame), dan RegisterFrame untuk pendaftaran akun.
 
 | No. | Nama Frame | Fungsi |
 |---|---|---|
-| 1 | MainFrame | Halaman awal untuk memilih penggunaan Business atau Customer. |
+| 1 | LoginFrame | Halaman awal untuk login. Terdapat tombol menuju RegisterFrame. |
+| 1a | RegisterFrame | Pendaftaran akun Customer atau Business. |
 | 2 | FoodFrame | Mengelola data makanan untuk Business dan menampilkan katalog makanan untuk Customer. |
 | 3 | ProductionFrame | Mencatat data produksi, penjualan reguler, makanan terbuang, dan menghitung surplus. |
 | 4 | SurplusFrame | Mengelola penawaran makanan surplus, diskon, jumlah tersedia, dan waktu pengambilan. |
 | 5 | ReservationFrame | Membuat reservasi bagi Customer serta melihat dan memperbarui status reservasi bagi Business. |
 
-Setiap frame dapat diakses melalui tombol navigasi pada halaman utama atau halaman sebelumnya. Fitur yang ditampilkan akan disesuaikan dengan bagian Business atau Customer yang dipilih pengguna.
+Setiap frame dapat diakses melalui tombol navigasi setelah login. Fitur yang ditampilkan akan disesuaikan dengan bagian Business atau Customer yang dipilih pengguna.
 
 
 ## 7. Rancangan Database
@@ -155,6 +168,7 @@ Database yang digunakan adalah **MySQL**. Database dirancang untuk menyimpan inf
 | 3 | production_records | Menyimpan catatan produksi, penjualan reguler, dan makanan terbuang. |
 | 4 | surplus_listings | Menyimpan informasi penawaran makanan surplus. |
 | 5 | reservations | Menyimpan data reservasi yang dilakukan Customer. |
+| 6 | users | Menyimpan akun login (username, hash password, peran, dan bisnis untuk akun Business). |
 
 ### 7.2 Relasi Antar Tabel
 
@@ -164,6 +178,9 @@ Relasi antar tabel dalam database WHAT'S LEFT adalah sebagai berikut:
 2. **Food_Items dan Production_Records** memiliki relasi One-to-Many karena satu jenis makanan dapat memiliki banyak catatan produksi.
 3. **Production_Records dan Surplus_Listings** memiliki relasi One-to-One dalam rancangan awal karena satu catatan produksi menghasilkan maksimal satu penawaran surplus.
 4. **Surplus_Listings dan Reservations** memiliki relasi One-to-Many karena satu penawaran makanan dapat dipesan oleh beberapa Customer.
+5. **Businesses dan Users** memiliki relasi One-to-Many karena satu bisnis dapat memiliki akun login (akun Customer tidak terkait bisnis mana pun).
+
+Skrip pembuatan database lengkap ada pada file `schema.sql`.
 
 
 ## 8. Rancangan Class
@@ -257,6 +274,22 @@ Method:
 - `createReservation()`
 - `updateStatus()`
 
+**F. User**
+
+Atribut:
+- `id`
+- `username`
+- `passwordHash`
+- `role`
+- `businessId`
+- `fullName`
+- `phone`
+- `createdAt`
+
+Method:
+- `isBusiness()`
+- `isCustomer()`
+
 ### 8.2 Class Repository
 
 Class repository bertugas mengelola komunikasi antara aplikasi dengan database MySQL.
@@ -268,7 +301,9 @@ Class repository bertugas mengelola komunikasi antara aplikasi dengan database M
 | 3 | FoodRepository | Mengelola data makanan. |
 | 4 | ProductionRepository | Mengelola catatan produksi dan penjualan. |
 | 5 | SurplusRepository | Mengelola penawaran makanan surplus. |
-| 6 | ReservationRepository | Mengelola data reservasi Customer. |
+| 6 | ReservationRepository | Mengelola data reservasi Customer, perubahan status, pembatalan, dan penghapusan riwayat. |
+| 7 | UserRepository | Mengelola akun: login dan register. |
+| 8 | PasswordUtil | Hash dan verifikasi password (PBKDF2). |
 
 ### 8.3 Class Frame
 
@@ -276,7 +311,8 @@ Class frame bertugas menangani tampilan antarmuka pengguna (GUI) menggunakan Jav
 
 | No. | Nama Class | Fungsi |
 |---|---|---|
-| 1 | MainFrame | Menampilkan halaman awal dan pilihan menu Business atau Customer. |
+| 1 | LoginFrame | Menampilkan halaman login. |
+| 1a | RegisterFrame | Menampilkan form pendaftaran akun. |
 | 2 | FoodFrame | Menampilkan serta mengelola data makanan. |
 | 3 | ProductionFrame | Menampilkan form pencatatan produksi. |
 | 4 | SurplusFrame | Menampilkan dan mengelola penawaran makanan surplus. |
@@ -292,3 +328,10 @@ Praktikum Pemrograman Berorientasi Objek (PBO).
 | 1 | Mochammad Mufid Mukhlis | 140810250020 |
 | 2 | Azahwa Ezarmei Narita | 140810250044 |
 | 3 | Muhammad Razaqa Fasya Aditya | 140810250074 |
+
+## 10. Cara Menjalankan
+
+1. Nyalakan **MySQL** (Laragon → Start All).
+2. Jalankan `schema.sql` di HeidiSQL/phpMyAdmin untuk membuat database `whats_left_pbo` dan seluruh tabel.
+3. Buka proyek di NetBeans, lalu **Run Project**. Aplikasi dimulai dari halaman Login.
+4. Pertama kali: pilih **Daftar**, buat akun Business (untuk mengelola makanan) dan akun Customer (untuk reservasi).

@@ -125,8 +125,9 @@ public class SurplusFrame extends javax.swing.JFrame {
         });
 
         jButton4.addActionListener(e -> {
-            MainFrame mainFrame = new MainFrame();
-            mainFrame.setVisible(true);
+            whats_left.model.Session.logout();
+            LoginFrame loginFrame = new LoginFrame();
+            loginFrame.setVisible(true);
             this.dispose();
         });
         
@@ -139,7 +140,8 @@ public class SurplusFrame extends javax.swing.JFrame {
         productionList.clear();
 
         try {
-            List<ProductionRecord> productions = productionRepository.getAllProductions();
+            List<ProductionRecord> productions = productionRepository.getProductionsByBusiness(
+                    whats_left.model.Session.getBusinessId());
             List<SurplusListing> surpluses = surplusRepository.getAllSurpluses();
 
             for (ProductionRecord production : productions) {
@@ -182,7 +184,8 @@ public class SurplusFrame extends javax.swing.JFrame {
         model.addColumn("Batas Ambil");
         model.addColumn("Status");
 
-        List<SurplusListing> surpluses = surplusRepository.getAllSurpluses();
+        List<SurplusListing> surpluses = surplusRepository.getSurplusesByBusiness(
+                whats_left.model.Session.getBusinessId());
 
         try {
             for (SurplusListing surplus : surpluses) {

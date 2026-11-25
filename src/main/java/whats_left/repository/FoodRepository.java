@@ -77,6 +77,41 @@ public class FoodRepository {
         return foods;
     }
 
+    public List<FoodItem> getFoodsByBusiness(int businessId) {
+        List<FoodItem> foods = new ArrayList<>();
+        String sql = "SELECT * FROM food_items WHERE business_id = ?";
+
+        try {
+            Connection connection = DatabaseUtil.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setInt(1, businessId);
+            ResultSet result = statement.executeQuery();
+
+            while (result.next()) {
+                FoodItem food = new FoodItem(
+                    result.getInt("id"),
+                    result.getInt("business_id"),
+                    result.getString("food_name"),
+                    result.getString("category"),
+                    result.getString("description"),
+                    result.getDouble("regular_price"),
+                    result.getTimestamp("created_at")
+                );
+
+                foods.add(food);
+            }
+
+            result.close();
+            statement.close();
+            connection.close();
+
+        } catch (SQLException e) {
+            System.out.println("Gagal mengambil data makanan bisnis: " + e.getMessage());
+        }
+
+        return foods;
+    }
+
     public FoodItem getFoodById(int id) {
         FoodItem food = null;
         String sql = "SELECT * FROM food_items WHERE id = ?";

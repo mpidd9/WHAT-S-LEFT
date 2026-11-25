@@ -15,6 +15,7 @@ import java.util.UUID;
 
 import whats_left.model.FoodItem;
 import whats_left.model.Reservation;
+import whats_left.model.Session;
 import whats_left.model.SurplusListing;
 import whats_left.repository.FoodRepository;
 import whats_left.repository.ReservationRepository;
@@ -36,7 +37,11 @@ public class ReservationFrame extends javax.swing.JFrame {
     private double selectedPrice = 0;
     private int selectedStock = 0;
     private int selectedListingId = -1;
-    
+
+    // ID reservasi untuk setiap baris tabel (urutan sama dengan baris tabel)
+    private final List<Integer> rowReservationIds = new ArrayList<>();
+    private javax.swing.JButton actionButton; // Hapus Riwayat (Business) / Batalkan (Customer)
+
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(ReservationFrame.class.getName());
     private String mode;
 
@@ -95,7 +100,20 @@ public class ReservationFrame extends javax.swing.JFrame {
             jLabel2.setText("Customer");
             jLabel1.setText("Reservasi Makanan");
             jButton5.setVisible(false);
+
+            // Nama dan nomor telepon diambil dari akun yang login,
+            // sehingga riwayat langsung tampil tanpa perlu menekan Enter.
+            if (!Session.getCustomerPhone().isEmpty()) {
+                jTextField1.setText(Session.getCustomerName());
+                jTextField2.setText(Session.getCustomerPhone());
+                jTextField1.setEditable(false);
+                jTextField2.setEditable(false);
+            } else {
+                jTextField2.setText("");
+            }
         }
+
+        setupActionBar();
 
         loadSurplusComboBox();
         loadReservationTable();
@@ -111,6 +129,135 @@ public class ReservationFrame extends javax.swing.JFrame {
                 }
             }
         }
+    }
+
+    /**
+     * Menambah baris tombol di bawah jendela: "Hapus Riwayat" untuk Business
+     * dan "Batalkan Reservasi" untuk Customer. Dibuat lewat kode (bukan Form
+     * Editor) supaya tidak tertimpa saat form diedit di NetBeans.
+     */
+    private void setupActionBar() {
+        java.awt.Container original = getContentPane();
+
+        javax.swing.JPanel root = new javax.swing.JPanel(new java.awt.BorderLayout());
+        root.add(original, java.awt.BorderLayout.CENTER);
+
+        javax.swing.JPanel bar = new javax.swing.JPanel(
+                new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 12, 8));
+
+        if (mode.equals("Business")) {
+            actionButton = new javax.swing.JButton("Hapus Riwayat");
+            actionButton.setToolTipText(
+                    "Hanya reservasi berstatus Completed atau Cancelled yang dapat dihapus");
+            actionButton.addActionListener(e -> deleteSelectedReservation());
+        } else {
+            actionButton = new javax.swing.JButton("Batalkan Reservasi");
+            actionButton.setToolTipText(
+                    "Hanya reservasi berstatus Pending yang dapat dibatalkan");
+            actionButton.addActionListener(e -> cancelSelectedReservation());
+        }
+
+        bar.add(actionButton);
+        root.add(bar, java.awt.BorderLayout.SOUTH);
+
+        setContentPane(root);
+        pack();
+        setLocationRelativeTo(null);
+    }
+
+    /** ID reservasi pada baris tabel yang dipilih, atau -1 jika tidak ada. */
+    private int getSelectedReservationId() {
+        int viewRow = jTable2.getSelectedRow();
+
+        if (viewRow == -1) {
+            return -1;
+        }
+
+        int modelRow = jTable2.convertRowIndexToModel(viewRow);
+
+        if (modelRow < 0 || modelRow >= rowReservationIds.size()) {
+            return -1;
+        }
+
+        return rowReservationIds.get(modelRow);
+    }
+
+    private String getSelectedStatus() {
+        int viewRow = jTable2.getSelectedRow();
+        int statusColumn = jTable2.getColumnCount() - 1; // kolom Status selalu terakhir
+
+        return jTable2.getValueAt(viewRow, statusColumn).toString();
+    }
+
+    private void cancelSelectedReservation() {
+        int id = getSelectedReservationId();
+
+        if (id == -1) {
+            JOptionPane.showMessageDialog(this,
+                    "Pilih reservasi yang ingin dibatalkan terlebih dahulu!");
+            return;
+        }
+
+        if (!"Pending".equals(getSelectedStatus())) {
+            JOptionPane.showMessageDialog(this,
+                    "Hanya reservasi berstatus Pending yang dapat dibatalkan.");
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Batalkan reservasi ini? Stok makanan akan dikembalikan.",
+                "Batalkan Reservasi", JOptionPane.YES_NO_OPTION);
+
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        String error = reservationRepository.cancelReservationByCustomer(
+                id, jTextField2.getText().trim());
+
+        if (error == null) {
+            JOptionPane.showMessageDialog(this, "Reservasi berhasil dibatalkan.");
+        } else {
+            JOptionPane.showMessageDialog(this, error);
+        }
+
+        loadSurplusComboBox();
+        loadReservationTable();
+    }
+
+    private void deleteSelectedReservation() {
+        int id = getSelectedReservationId();
+
+        if (id == -1) {
+            JOptionPane.showMessageDialog(this,
+                    "Pilih reservasi yang ingin dihapus terlebih dahulu!");
+            return;
+        }
+
+        String status = getSelectedStatus();
+
+        if (!"Completed".equals(status) && !"Cancelled".equals(status)) {
+            JOptionPane.showMessageDialog(this,
+                    "Hanya reservasi berstatus Completed atau Cancelled "
+                    + "yang dapat dihapus dari riwayat.");
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Hapus reservasi ini dari riwayat? Tindakan ini tidak dapat dibatalkan.",
+                "Hapus Riwayat", JOptionPane.YES_NO_OPTION);
+
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        if (reservationRepository.deleteReservation(id)) {
+            JOptionPane.showMessageDialog(this, "Riwayat reservasi berhasil dihapus.");
+        } else {
+            JOptionPane.showMessageDialog(this, "Gagal menghapus riwayat reservasi.");
+        }
+
+        loadReservationTable();
     }
 
     private void calculateTotalPrice() {
@@ -392,7 +539,9 @@ public class ReservationFrame extends javax.swing.JFrame {
         jComboBox2.removeAllItems();
         jComboBox2.addItem("Jumlah");
 
-        jTextField1.setText("");
+        if (jTextField1.isEditable()) {
+            jTextField1.setText("");
+        }
         jTextField4.setText("");
 
         selectedPrice = 0;
@@ -484,8 +633,12 @@ public class ReservationFrame extends javax.swing.JFrame {
             jComboBox2.removeAllItems();
             jComboBox2.addItem("Jumlah");
 
-            jTextField1.setText("");
-            jTextField2.setText("");
+            if (jTextField1.isEditable()) {
+                jTextField1.setText("");
+            }
+            if (jTextField2.isEditable()) {
+                jTextField2.setText("");
+            }
             jTextField4.setText("");
 
             selectedPrice = 0;
@@ -500,47 +653,79 @@ public class ReservationFrame extends javax.swing.JFrame {
 
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
         // TODO add your handling code here:
-        new MainFrame().setVisible(true);
+        Session.logout();
+        new LoginFrame().setVisible(true);
         this.dispose();
     }//GEN-LAST:event_jButton4ActionPerformed
 
     private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
         // TODO add your handling code here:
-        int selectedRow = jTable2.getSelectedRow();
+        int reservationId = getSelectedReservationId();
 
-        if (selectedRow == -1) {
+        if (reservationId == -1) {
             JOptionPane.showMessageDialog(this,
                     "Pilih reservasi yang ingin diubah terlebih dahulu!");
-        } else {
-            int reservationId = Integer.parseInt(
-                    jTable2.getValueAt(selectedRow, 0).toString());
+            return;
+        }
 
-            String currentStatus = jTable2.getValueAt(selectedRow, 7).toString();
+        String currentStatus = getSelectedStatus();
 
-            String[] statusOptions = {
-                "Pending", "Confirmed", "Cancelled"
-            };
+        if ("Completed".equals(currentStatus) || "Cancelled".equals(currentStatus)) {
+            JOptionPane.showMessageDialog(this,
+                    "Reservasi yang sudah " + currentStatus
+                    + " tidak dapat diubah lagi.");
+            return;
+        }
 
-            String selectedStatus = (String) JOptionPane.showInputDialog(
-                    this,
-                    "Pilih status reservasi:",
-                    "Ubah Status Reservasi",
-                    JOptionPane.QUESTION_MESSAGE,
-                    null,
-                    statusOptions,
-                    currentStatus
-            );
+        String[] statusOptions = {
+            "Pending", "Confirmed", "Completed", "Cancelled"
+        };
 
-            if (selectedStatus != null) {
-                reservationRepository.updateReservationStatus(
-                        reservationId, selectedStatus);
+        String selectedStatus = (String) JOptionPane.showInputDialog(
+                this,
+                "Pilih status reservasi:",
+                "Ubah Status Reservasi",
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                statusOptions,
+                currentStatus
+        );
 
-                JOptionPane.showMessageDialog(this,
-                        "Status reservasi berhasil diperbarui!");
+        if (selectedStatus == null || selectedStatus.equals(currentStatus)) {
+            return;
+        }
 
-                loadReservationTable();
+        if ("Cancelled".equals(selectedStatus)) {
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Batalkan reservasi ini? Stok makanan akan dikembalikan "
+                    + "dan status tidak dapat diubah lagi.",
+                    "Batalkan Reservasi", JOptionPane.YES_NO_OPTION);
+
+            if (confirm != JOptionPane.YES_OPTION) {
+                return;
+            }
+        } else if ("Completed".equals(selectedStatus)) {
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Tandai reservasi ini selesai? Status Completed tidak "
+                    + "dapat diubah lagi.",
+                    "Selesaikan Reservasi", JOptionPane.YES_NO_OPTION);
+
+            if (confirm != JOptionPane.YES_OPTION) {
+                return;
             }
         }
+
+        String error = reservationRepository.changeStatus(
+                reservationId, selectedStatus, null);
+
+        if (error == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Status reservasi berhasil diperbarui!");
+        } else {
+            JOptionPane.showMessageDialog(this, error);
+        }
+
+        loadReservationTable();
     }//GEN-LAST:event_jButton5ActionPerformed
 
     private void loadSurplusComboBox() {
@@ -585,11 +770,13 @@ public class ReservationFrame extends javax.swing.JFrame {
     private void loadReservationTable() {
         DefaultTableModel model = (DefaultTableModel) jTable2.getModel();
         model.setRowCount(0);
+        rowReservationIds.clear();
 
         List<Reservation> reservations;
 
         if (mode.equals("Business")) {
-            reservations = reservationRepository.getAllReservations();
+            reservations = reservationRepository.getReservationsByBusiness(
+                    Session.getBusinessId());
         } else {
             String customerPhone = jTextField2.getText().trim();
             reservations = reservationRepository.getReservationsByPhone(customerPhone);
@@ -611,6 +798,8 @@ public class ReservationFrame extends javax.swing.JFrame {
                                 = foodRepository.getFoodById(production.getFoodId());
 
                         if (food != null) {
+                            rowReservationIds.add(reservation.getId());
+
                             if (mode.equals("Business")) {
                                 model.addRow(new Object[]{
                                     reservation.getId(),
